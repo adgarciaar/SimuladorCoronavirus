@@ -5,8 +5,8 @@
  */
 package Arranque;
 
-import entidadesDatos.Pais;
-import entidadesDatos.Mensaje;
+import Entidades.Pais;
+import Entidades.Mensaje;
 
 /**
  *

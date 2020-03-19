@@ -6,8 +6,8 @@
 package EquipoProcesamiento;
 
 import Broker.ServidorBroker;
-import entidadesDatos.Pais;
-import entidadesDatos.Mensaje;
+import Entidades.Pais;
+import Entidades.Mensaje;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;

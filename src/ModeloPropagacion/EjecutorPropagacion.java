@@ -5,7 +5,7 @@
  */
 package ModeloPropagacion;
 
-import entidadesDatos.Pais;
+import Entidades.Pais;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
