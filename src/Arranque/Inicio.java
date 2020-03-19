@@ -27,7 +27,7 @@ public class Inicio {
         List<String> instruccionesConfiguracion = new ArrayList<>();
                 
         try {
-            File myObj = new File("././configuracionBroker.txt");
+            File myObj = new File("././configuracion.txt");
             try (Scanner myReader = new Scanner(myObj)) {
                 while (myReader.hasNextLine()) {
                     String data = myReader.nextLine();
@@ -66,15 +66,9 @@ public class Inicio {
                 System.out.println(ipSiguienteEquipo);
             }
             
-            //HashMap<String, Integer> equipos = new HashMap<>();
-            
-            /*Equipo equipo = new Equipo();
-            equipo.setIp("198.162.0.algo");
-            equipo.setUsoProcesador(50);*/
-          
-            //equipos.put("198.162.0.algo", 0);
-            
             ServidorBroker servidorBroker = new ServidorBroker( puerto,  equipos);
+            servidorBroker.establecerComunicacionInicialConEquipos();
+            servidorBroker.iniciarEscucha();
             
         //si no es un broker
         }else{
@@ -87,7 +81,7 @@ public class Inicio {
             arrayLinea = instruccionesConfiguracion.get(2).split("\t");
             int numeroPaises = Integer.parseInt(arrayLinea[1]);
             
-            System.out.println("Número de países en este equipo: "+numeroPaises);
+            System.out.println("Número de países en este precargados en este equipo: "+numeroPaises+"\n");
             
             Pais pais;
             String[] datosSiguientePais;
@@ -105,11 +99,9 @@ public class Inicio {
                 System.out.println(Arrays.toString(datosSiguientePais));
             }
             
+            System.out.print("\n");
+            
             ServidorEquipo servidor = new ServidorEquipo(paises, puerto);
-            
-            servidor.ejecutarModeloPaisesPrecargados();
-            
-            servidor.activarMonitor();
             
             servidor.iniciarEscucha();
         }

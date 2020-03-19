@@ -55,6 +55,8 @@ public class ServidorBroker {
     
     public void establecerComunicacionInicialConEquipos(){
         
+        System.out.println("Estableciendo comunicación inicial con equipos");
+        
         String ipEquipo = null;
         
         for (HashMap.Entry<String, Integer> entry : equipos.entrySet()) {
@@ -67,7 +69,8 @@ public class ServidorBroker {
             mensaje.setInstrucccion(4);
             
             SenderBroker sender = new SenderBroker(ipEquipo, this.puerto);
-            sender.enviarMensaje( mensaje );            
+            sender.enviarMensaje( mensaje );      
+            System.out.println("Enviado mensaje inicial a "+ipEquipo);
         }
         
     }
@@ -113,6 +116,7 @@ public class ServidorBroker {
 
                             SenderBroker sender = new SenderBroker(ipEquipo, puerto);
                             sender.enviarMensaje( mensaje );
+                            System.out.println("Enviado país "+paisAEnviar.getNombre()+" a "+ipEquipo);
                         }
 
                         sem.release();
@@ -136,7 +140,7 @@ public class ServidorBroker {
             Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-        System.out.println("ServerSocket awaiting connections...");
+        System.out.println("Iniciada escucha de mensajes entrantes");
         
         while (true){
             
@@ -152,7 +156,7 @@ public class ServidorBroker {
                 // create a DataInputStream so we can read data from it.
                 ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
                   
-                System.out.println("A new client is connected : " + s);
+                System.out.println("Mensaje entrante proveniente de " + s);
                 
                 Mensaje mensaje = (Mensaje)objectInputStream.readObject();
                 Pais pais = mensaje.getPais();
@@ -164,6 +168,8 @@ public class ServidorBroker {
                     
                     case 4: //recibiendo primera comunicación con un equipo
                         
+                        System.out.println("Recibiendo respuesta inicial de equipo");
+                        
                         ipSender = mensaje.getIpSender();
                         procesamientoCPU = mensaje.getProcesamientoCPU();
 
@@ -174,11 +180,15 @@ public class ServidorBroker {
                         //reemplazar por nuevo valor de uso de CPU
                         equipos.replace(ipSender, anteriorProcesamientoCPU, procesamientoCPU);
 
-                        sem.release();
+                        sem.release();                 
+                        
+                        System.out.println("Actualizada información del equipo");
                         
                       break;
                       
                     case 2: //recibiendo país desde un equipo
+                        
+                        System.out.println("Recibiendo país desde el equipo para distribuir");
                       
                         sem.acquire();
 
@@ -186,12 +196,13 @@ public class ServidorBroker {
 
                         sem.release();
 
-                        System.out.println("Received "+pais.getNombre()+" con "+pais.getPoblacion());
-                        System.out.println("Assigning new thread for this client"); 
+                        System.out.println("Recibido el país "+pais.getNombre()+" con "+pais.getPoblacion()+" habitantes");
                         
                       break;
                       
                     case 3: //recibiendo reporte de rendimiento
+                        
+                        System.out.println("Recibiendo información de procesamiento del equipo");
                         
                         ipSender = mensaje.getIpSender();
                         procesamientoCPU = mensaje.getProcesamientoCPU();
@@ -204,6 +215,8 @@ public class ServidorBroker {
                         equipos.replace(ipSender, anteriorProcesamientoCPU, procesamientoCPU);
 
                         sem.release();
+                        
+                        System.out.println("Actualizada información del equipo");
                         
                         break;
                    

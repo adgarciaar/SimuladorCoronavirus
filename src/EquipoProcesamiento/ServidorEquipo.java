@@ -55,6 +55,8 @@ public class ServidorEquipo {
     
     public void ejecutarModeloPaisesPrecargados(){
         
+        System.out.println("Iniciando procesamiento de países precargados en este equipo"); 
+        
         for (Pais pais : paises) {
         
             try {
@@ -64,9 +66,7 @@ public class ServidorEquipo {
                 Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
             }
 
-            System.out.println("Received "+pais.getNombre()+" con "+pais.getPoblacion());
-
-            System.out.println("Assigning new thread for this client"); 
+            System.out.println("Recibido localmente el país "+pais.getNombre()+" con "+pais.getPoblacion()+" habitantes");
 
             // create a new thread object 
             EjecutorPropagacion t = new EjecutorPropagacion(pais);
@@ -75,6 +75,7 @@ public class ServidorEquipo {
             this.sem.release(); 
 
             t.start(); 
+            System.out.println("Iniciado nuevo hilo para procesar este país"); 
         }
     }
     
@@ -119,8 +120,7 @@ public class ServidorEquipo {
             Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-        System.out.println("ServerSocket awaiting connections...");
-        
+        System.out.println("Iniciada escucha de mensajes entrantes");        
         
         while (true){
             
@@ -136,12 +136,12 @@ public class ServidorEquipo {
                 // create a DataInputStream so we can read data from it.
                 ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
                   
-                System.out.println("A new client is connected : " + s);
+                System.out.println("Mensaje entrante del broker: " + s);
                 
                 Mensaje mensaje = (Mensaje)objectInputStream.readObject();
                 Pais pais = mensaje.getPais();
                 
-                String ipEquipo = null;
+                String ipSender = null;
                 Mensaje nuevoMensaje = null;
                 SenderEquipo sender = null;
                 
@@ -149,12 +149,13 @@ public class ServidorEquipo {
                     
                     case 1: //recibiendo país desde broker
                         
+                        System.out.println("Recibiendo país para procesar");
+                        
                         sem.acquire(); 
 
                         paises.add(pais);
 
-                        System.out.println("Received "+pais.getNombre()+" con "+pais.getPoblacion());
-                        System.out.println("Assigning new thread for this client"); 
+                        System.out.println("Recibido el país "+pais.getNombre()+" con "+pais.getPoblacion()+" habitantes");                        
 
                         // create a new thread object 
                         EjecutorPropagacion t = new EjecutorPropagacion(pais);
@@ -163,28 +164,37 @@ public class ServidorEquipo {
                         //System.out.println("Principal Releases the permit."); 
                         sem.release(); 
 
-                        // Invoking the start() method 
+                        // Invoking the start() method                         
                         t.start(); 
+                        System.out.println("Iniciado nuevo hilo para procesar este país"); 
                         
                         break;
                         
                      case 4: //comunicación inicial con broker
                          
-                        ipEquipo = mensaje.getIpSender();
+                        System.out.println("Recibiendo mensaje inicial del broker");
+                        
+                        this.ejecutarModeloPaisesPrecargados();
+                        this.activarMonitor();
+                         
+                        ipSender = mensaje.getIpSender();
                         
                         nuevoMensaje = new Mensaje();
-                        mensaje.setIpSender(this.ipServidor);
+                        nuevoMensaje.setIpSender(this.ipServidor);
                         nuevoMensaje.setPais(null);
                         nuevoMensaje.setInstrucccion(4);
 
-                        sender = new SenderEquipo(ipEquipo, this.puerto);
-                        sender.enviarMensaje( mensaje );  
+                        sender = new SenderEquipo(ipSender, this.puerto);
+                        sender.enviarMensaje( nuevoMensaje );  
+                        System.out.println("Enviada respuesta inicial al broker");
                          
                         break;
                         
                      case 3: //reportar rendimiento
                          
-                        ipEquipo = mensaje.getIpSender();
+                        System.out.println("Recibiendo solicitud para reportar procesamiento");
+                         
+                        ipSender = mensaje.getIpSender();
                         
                         nuevoMensaje = new Mensaje();
                         mensaje.setIpSender(this.ipServidor);
@@ -192,8 +202,9 @@ public class ServidorEquipo {
                         nuevoMensaje.setPais(null);
                         nuevoMensaje.setInstrucccion(3);
 
-                        sender = new SenderEquipo(ipEquipo, this.puerto);
-                        sender.enviarMensaje( mensaje );    
+                        sender = new SenderEquipo(ipSender, this.puerto);
+                        sender.enviarMensaje( mensaje );   
+                        System.out.println("Enviada información de procesamiento al broker");
                          
                         break;
                         
