@@ -7,6 +7,9 @@ package Arranque;
 
 import Entidades.Pais;
 import Entidades.Mensaje;
+import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  *
@@ -22,7 +25,7 @@ public class TemporalCliente {
         
         Mensaje mensaje = new Mensaje();        
         mensaje.setPais(pais);
-        mensaje.setInstrucccion(2);
+        mensaje.setInstrucccion(2);       
         
         //SenderEquipo cliente = new SenderEquipo("localhost", 7777);
         //cliente.enviarMensaje(mensaje);

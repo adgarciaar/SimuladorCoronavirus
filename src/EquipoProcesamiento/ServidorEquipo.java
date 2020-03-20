@@ -82,6 +82,7 @@ public class ServidorEquipo {
     public void activarMonitor(){
         
         Thread thread = new Thread(){
+            @Override
             public void run(){
                 System.out.println("Monitor activado");
                 while(true){
@@ -112,10 +113,10 @@ public class ServidorEquipo {
     
     public void iniciarEscucha(){
         
-        ServerSocket ss = null;
+        ServerSocket serverSocket = null;
         
         try {
-            ss = new ServerSocket(puerto);
+            serverSocket = new ServerSocket(puerto);
         } catch (IOException ex) {
             Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -124,19 +125,19 @@ public class ServidorEquipo {
         
         while (true){
             
-            Socket s = null;    
+            Socket socket = null;    
               
             try { 
                 
                 // socket object to receive incoming client requests 
-                s = ss.accept(); 
+                socket = serverSocket.accept(); 
                 
                 // get the input stream from the connected socket
-                InputStream inputStream = s.getInputStream();
+                InputStream inputStream = socket.getInputStream();
                 // create a DataInputStream so we can read data from it.
                 ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
                   
-                System.out.println("Mensaje entrante del broker: " + s);
+                System.out.println("Mensaje entrante del broker: " + socket);
                 
                 Mensaje mensaje = (Mensaje)objectInputStream.readObject();
                 Pais pais = mensaje.getPais();
@@ -151,7 +152,7 @@ public class ServidorEquipo {
                         
                         System.out.println("Recibiendo país para procesar");
                         
-                        sem.acquire(); 
+                        this.sem.acquire(); 
 
                         paises.add(pais);
 
@@ -162,7 +163,7 @@ public class ServidorEquipo {
                         hilos.add(t);
 
                         //System.out.println("Principal Releases the permit."); 
-                        sem.release(); 
+                        this.sem.release(); 
 
                         // Invoking the start() method                         
                         t.start(); 
@@ -213,7 +214,7 @@ public class ServidorEquipo {
             } 
             catch (Exception e){ 
                 try { 
-                    s.close();
+                    socket.close();
                 } catch (IOException ex) {
                     Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -223,6 +224,11 @@ public class ServidorEquipo {
         
     }
        
+    public void iniciarEscuchaServidor(){
+        Runnable task1 = () -> { this.iniciarEscucha();};      
+        Thread t1 = new Thread(task1);
+        t1.start();
+    }
         
 }
     

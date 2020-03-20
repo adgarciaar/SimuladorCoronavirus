@@ -21,6 +21,9 @@ import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import EquipoProcesamiento.ServidorEquipo;
+import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  *
@@ -73,6 +76,24 @@ public class ServidorBroker {
             System.out.println("Enviado mensaje inicial a "+ipEquipo);
         }
         
+        //this.monitorearCargaEquipos();
+        
+    }
+    
+    public void monitorearCargaEquipos(){
+        
+        TimerTask task = new TimerTask() {
+
+            @Override
+            public void run() {
+                System.out.println("Monitor de carga activado");
+            }
+        };
+
+        Timer timer = new Timer();
+        //timer.schedule(task, new Date(), 3000);
+        timer.schedule(task, 10000, 3000);
+        
     }
     
     public void iniciarDistribuidor(){
@@ -80,6 +101,7 @@ public class ServidorBroker {
         Thread thread = new Thread(){
             @Override
             public void run(){
+                
                 System.out.println("Distribuidor activado");
                 
                 while(true){
@@ -173,14 +195,14 @@ public class ServidorBroker {
                         ipSender = mensaje.getIpSender();
                         procesamientoCPU = mensaje.getProcesamientoCPU();
 
-                        sem.acquire();
+                        this.sem.acquire();
 
                         anteriorProcesamientoCPU = equipos.get(ipSender);
 
                         //reemplazar por nuevo valor de uso de CPU
                         equipos.replace(ipSender, anteriorProcesamientoCPU, procesamientoCPU);
 
-                        sem.release();                 
+                        this.sem.release();                 
                         
                         System.out.println("Actualizada información del equipo");
                         
@@ -190,11 +212,11 @@ public class ServidorBroker {
                         
                         System.out.println("Recibiendo país desde el equipo para distribuir");
                       
-                        sem.acquire();
+                        this.sem.acquire();
 
                         paisesPorDistribuir.add(pais);
 
-                        sem.release();
+                        this.sem.release();
 
                         System.out.println("Recibido el país "+pais.getNombre()+" con "+pais.getPoblacion()+" habitantes");
                         
@@ -207,14 +229,14 @@ public class ServidorBroker {
                         ipSender = mensaje.getIpSender();
                         procesamientoCPU = mensaje.getProcesamientoCPU();
 
-                        sem.acquire();
+                        this.sem.acquire();
 
                         anteriorProcesamientoCPU = equipos.get(ipSender);
 
                         //reemplazar por nuevo valor de uso de CPU
                         equipos.replace(ipSender, anteriorProcesamientoCPU, procesamientoCPU);
 
-                        sem.release();
+                        this.sem.release();
                         
                         System.out.println("Actualizada información del equipo");
                         
@@ -233,6 +255,12 @@ public class ServidorBroker {
             } 
         } 
         
-    }     
+    } 
+
+    public void iniciarEscuchaServidor(){
+        Runnable task1 = () -> { this.iniciarEscucha();};      
+        Thread t1 = new Thread(task1);
+        t1.start();
+    }
     
 }

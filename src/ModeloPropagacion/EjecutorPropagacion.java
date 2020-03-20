@@ -52,8 +52,8 @@ public class EjecutorPropagacion extends Thread {
     
     @Override
     public void run() {
-        System.out.println("En ejecución");
-            //this.pais.setPoblacion(50); 
+        //System.out.println("En ejecución");
+        //this.pais.setPoblacion(50); 
         while(keepRunning()) {   
             try {
                 Thread.sleep(1000);            

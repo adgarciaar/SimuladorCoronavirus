@@ -55,6 +55,8 @@ public class Inicio {
             arrayLinea = instruccionesConfiguracion.get(2).split("\t");
             int numeroEquipos = Integer.parseInt(arrayLinea[1]);
             
+            System.out.println("Número de equipos para procesamiento: "+numeroEquipos+"\n");
+            
             String ipSiguienteEquipo;
             
             for (int i = 3; i < 3+numeroEquipos; i++) {
@@ -66,9 +68,13 @@ public class Inicio {
                 System.out.println(ipSiguienteEquipo);
             }
             
+            System.out.print("\n");
+            
             ServidorBroker servidorBroker = new ServidorBroker( puerto,  equipos);
-            servidorBroker.establecerComunicacionInicialConEquipos();
-            servidorBroker.iniciarEscucha();
+            servidorBroker.iniciarEscuchaServidor();
+            //servidorBroker.establecerComunicacionInicialConEquipos();
+            servidorBroker.monitorearCargaEquipos();
+        
             
         //si no es un broker
         }else{
@@ -103,7 +109,7 @@ public class Inicio {
             
             ServidorEquipo servidor = new ServidorEquipo(paises, puerto);
             
-            servidor.iniciarEscucha();
+            servidor.iniciarEscuchaServidor();
         }
         
     }
