@@ -43,8 +43,9 @@ public class ServidorBroker {
         
         this.puerto = puerto;
         this.equipos = new HashMap<>(equipos);
-        sem = new Semaphore(1); 
-        paises = new ArrayList<>();
+        this.sem = new Semaphore(1); 
+        this.paises = new ArrayList<>();
+        this.paisesPorDistribuir = new ArrayList<>();
         
         InetAddress inetAddress = null;
         try {
@@ -80,19 +81,45 @@ public class ServidorBroker {
         
     }
     
-    public void monitorearCargaEquipos(){
+    public void solicitarCargaEquipos(){
         
         TimerTask task = new TimerTask() {
 
             @Override
             public void run() {
+                
                 System.out.println("Monitor de carga activado");
+                
+                String ipEquipo = null;
+        
+                for (HashMap.Entry<String, Integer> entry : equipos.entrySet()) {
+
+                    ipEquipo = entry.getKey();
+
+                    Mensaje mensaje = new Mensaje();
+                    mensaje.setIpSender(ipServidor);
+                    mensaje.setPais(null);
+                    mensaje.setInstrucccion(3);
+
+                    SenderBroker sender = new SenderBroker(ipEquipo, puerto);
+                    sender.enviarMensaje( mensaje );      
+                    System.out.println("Enviada solicitud de información de "
+                            + "procesamiento a "+ipEquipo);
+                }
+                
             }
         };
 
         Timer timer = new Timer();
         //timer.schedule(task, new Date(), 3000);
-        timer.schedule(task, 10000, 3000);
+        
+        //tiempo (ms) que dura para ejecutarse cada vez
+        int tiempoPeriodicoEjecucion = 20000;
+        //tiempo (ms) que dura para ejecutarse la primera vez
+        int tiempoInicialEspera = 10000;
+        
+        //la tarea se ejecuta cada t segundos
+        timer.schedule(task, tiempoInicialEspera, tiempoPeriodicoEjecucion);
         
     }
     

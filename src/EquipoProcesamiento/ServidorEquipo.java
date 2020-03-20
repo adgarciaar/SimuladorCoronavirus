@@ -21,6 +21,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.concurrent.*;
 import ModeloPropagacion.EjecutorPropagacion;
+import java.util.Random;
 
 /**
  *
@@ -199,7 +200,12 @@ public class ServidorEquipo {
                         
                         nuevoMensaje = new Mensaje();
                         mensaje.setIpSender(this.ipServidor);
-                        mensaje.setProcesamientoCPU(32);
+                        
+                        //POR AHORA CON UN RANDOM
+                        Random rand = new Random();
+                        int cpuUsage = rand.nextInt(100);
+                        mensaje.setProcesamientoCPU(cpuUsage);                        
+                        
                         nuevoMensaje.setPais(null);
                         nuevoMensaje.setInstrucccion(3);
 

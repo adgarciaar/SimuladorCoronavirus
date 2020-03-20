@@ -72,9 +72,9 @@ public class Inicio {
             
             ServidorBroker servidorBroker = new ServidorBroker( puerto,  equipos);
             servidorBroker.iniciarEscuchaServidor();
-            //servidorBroker.establecerComunicacionInicialConEquipos();
-            servidorBroker.monitorearCargaEquipos();
-        
+            servidorBroker.establecerComunicacionInicialConEquipos();
+            servidorBroker.solicitarCargaEquipos();    
+            servidorBroker.iniciarDistribuidor();
             
         //si no es un broker
         }else{
