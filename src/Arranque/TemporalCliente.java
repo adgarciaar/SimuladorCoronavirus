@@ -7,6 +7,9 @@ package Arranque;
 
 import Entidades.Pais;
 import Entidades.Mensaje;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
+import java.lang.management.ThreadMXBean;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -25,7 +28,39 @@ public class TemporalCliente {
         
         Mensaje mensaje = new Mensaje();        
         mensaje.setPais(pais);
-        mensaje.setInstrucccion(2);       
+        mensaje.setInstrucccion(2);   
+        
+                Thread thread = new Thread(){
+            @Override
+            public void run(){
+                    while(true){
+                        int x = 1;
+                    }
+                }
+          };
+
+        thread.start();
+        long idThread = thread.getId();
+            
+        
+        ThreadMXBean threadMxBean = ManagementFactory.getThreadMXBean();
+        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+        
+        while(true){
+                    long initialUptime = runtimeMxBean.getUptime();
+                    long upTime = runtimeMxBean.getUptime();
+                    long cpuTime = threadMxBean.getThreadCpuTime(idThread);
+                    
+                    long initialCPU = cpuTime;
+                    long elapsedTime = (upTime - initialUptime);
+                    
+                    long nrCPUs = 2;
+                    
+                    long elapsedCpu = cpuTime - initialCPU;
+                    float cpuUsage = elapsedCpu / (elapsedTime * 1000000F * nrCPUs);
+                    
+                        System.out.println(cpuUsage);
+                    }
         
         //SenderEquipo cliente = new SenderEquipo("localhost", 7777);
         //cliente.enviarMensaje(mensaje);

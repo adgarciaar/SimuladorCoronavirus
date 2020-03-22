@@ -16,10 +16,16 @@ public class Mensaje implements Serializable {
     private Pais pais;
     private int instrucccion; 
     //1 entregarPaisAEquipo, 2 entregarPaisABroker, 3 entregarRendimiento
-    //4 realizarPrimeraComunicacion, 5 distribuirVirus
+    //4 realizarPrimeraComunicacion, 5 distribuirVirus, 6 paísRecibidoParaProcesar
+    //7 equipoEntregandoPaisABroker
     
     private String ipSender;
-    private int procesamientoCPU;
+    private Long procesamientoCPU;
+    
+    private Long procesamientoInferior;
+    private Long procesamientoSuperior;
+    
+    private int instruccionPais; //para saber qué país retornar a broker
 
     public Mensaje() {
     }
@@ -48,12 +54,36 @@ public class Mensaje implements Serializable {
         this.ipSender = ipSender;
     }
 
-    public int getProcesamientoCPU() {
+    public Long getProcesamientoCPU() {
         return procesamientoCPU;
     }
 
-    public void setProcesamientoCPU(int procesamientoCPU) {
+    public void setProcesamientoCPU(Long procesamientoCPU) {
         this.procesamientoCPU = procesamientoCPU;
+    }
+
+    public Long getProcesamientoInferior() {
+        return procesamientoInferior;
+    }
+
+    public void setProcesamientoInferior(Long procesamientoInferior) {
+        this.procesamientoInferior = procesamientoInferior;
+    }
+
+    public Long getProcesamientoSuperior() {
+        return procesamientoSuperior;
+    }
+
+    public void setProcesamientoSuperior(Long procesamientoSuperior) {
+        this.procesamientoSuperior = procesamientoSuperior;
+    }
+
+    public int getInstruccionPais() {
+        return instruccionPais;
+    }
+
+    public void setInstruccionPais(int instruccionPais) {
+        this.instruccionPais = instruccionPais;
     }
     
 }

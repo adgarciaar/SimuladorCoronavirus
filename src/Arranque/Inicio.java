@@ -47,7 +47,7 @@ public class Inicio {
         //si es un broker
         if(instruccionesConfiguracion.get(0).equals("broker\tsi")){
             
-            HashMap<String, Integer> equipos = new HashMap<>();
+            HashMap<String, Long> equipos = new HashMap<>();
             
             String[] arrayLinea = instruccionesConfiguracion.get(1).split("\t");
             int puerto = Integer.parseInt( arrayLinea[1] );
@@ -63,7 +63,7 @@ public class Inicio {
                 
                 ipSiguienteEquipo = instruccionesConfiguracion.get(i);
                 
-                equipos.put(ipSiguienteEquipo, 0);
+                equipos.put(ipSiguienteEquipo, 0L);
                 
                 System.out.println(ipSiguienteEquipo);
             }
@@ -74,7 +74,7 @@ public class Inicio {
             servidorBroker.iniciarEscuchaServidor();
             servidorBroker.establecerComunicacionInicialConEquipos();
             servidorBroker.solicitarCargaEquipos();    
-            servidorBroker.iniciarDistribuidor();
+            servidorBroker.realizarDistribucion();
             
         //si no es un broker
         }else{

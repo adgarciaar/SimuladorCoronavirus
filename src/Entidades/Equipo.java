@@ -5,34 +5,32 @@
  */
 package Entidades;
 
-import java.io.Serializable;
-
 /**
  *
  * @author adgar
  */
-public class Equipo implements Serializable {
+public class Equipo {
     
-    private String ip;
-    private int usoProcesador;
+    private boolean activo;
+    private boolean notificacionReporteCargaEnviada;
 
     public Equipo() {
+    }    
+
+    public boolean isActivo() {
+        return activo;
     }
 
-    public String getIp() {
-        return ip;
+    public void setActivo(boolean activo) {
+        this.activo = activo;
     }
 
-    public void setIp(String ip) {
-        this.ip = ip;
+    public boolean isNotificacionReporteCargaEnviada() {
+        return notificacionReporteCargaEnviada;
     }
 
-    public int getUsoProcesador() {
-        return usoProcesador;
-    }
-
-    public void setUsoProcesador(int usoProcesador) {
-        this.usoProcesador = usoProcesador;
+    public void setNotificacionReporteCargaEnviada(boolean notificacionReporteCargaEnviada) {
+        this.notificacionReporteCargaEnviada = notificacionReporteCargaEnviada;
     }
     
 }

@@ -21,6 +21,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.concurrent.*;
 import ModeloPropagacion.EjecutorPropagacion;
+import java.util.HashMap;
 import java.util.Random;
 
 /**
@@ -32,7 +33,12 @@ public class ServidorEquipo {
     private String ipServidor;
     private int puerto;
     private volatile List<Pais> paises;
-    private volatile List<EjecutorPropagacion> hilos;    
+    //private volatile List<EjecutorPropagacion> hilos;   
+    
+    private volatile HashMap<String, EjecutorPropagacion> hilos;
+    
+    private volatile Pais paisMayorProcesamiento;
+    private volatile Pais paisMenorProcesamiento;
     
     private volatile Semaphore sem; 
 
@@ -41,7 +47,8 @@ public class ServidorEquipo {
         this.paises = new ArrayList<>(paises);
         this.puerto = puerto;
         sem = new Semaphore(1); 
-        hilos = new ArrayList<>(); 
+        //hilos = new ArrayList<>(); 
+        hilos = new HashMap<>(); 
         
         InetAddress inetAddress = null;
         try {
@@ -52,32 +59,36 @@ public class ServidorEquipo {
         
         this.ipServidor = inetAddress.getHostAddress();
         
+        this.paisMayorProcesamiento = null;
+        this.paisMenorProcesamiento = null;
+        
     }
     
     public void ejecutarModeloPaisesPrecargados(){
         
         System.out.println("Iniciando procesamiento de países precargados en este equipo"); 
         
-        for (Pais pais : paises) {
-        
-            try {
+        try {
                 // acquiring the lock
                 this.sem.acquire();
             } catch (InterruptedException ex) {
                 Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
             }
+        
+        for (Pais pais : paises) {
 
             System.out.println("Recibido localmente el país "+pais.getNombre()+" con "+pais.getPoblacion()+" habitantes");
 
             // create a new thread object 
             EjecutorPropagacion t = new EjecutorPropagacion(pais);
-            hilos.add(t);
-
-            this.sem.release(); 
+            //hilos.add(t);
+            hilos.put(pais.getNombre(), t);
 
             t.start(); 
             System.out.println("Iniciado nuevo hilo para procesar este país"); 
         }
+        
+        this.sem.release(); 
     }
     
     public void activarMonitor(){
@@ -94,13 +105,13 @@ public class ServidorEquipo {
                         Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
                     }
                         for (int i = 0; i < hilos.size(); i++) {
-                            EjecutorPropagacion f = hilos.get(i);
+                            /*EjecutorPropagacion f = hilos.get(i);
                             f.pausar();
                             //f.doStop();
                             Pais pisito = f.getPais();
                             paises.set(0, pisito);
                             //System.out.println(paises.get(0).getPoblacion());
-                            System.out.println(paises.get(0).getNombre());
+                            System.out.println(paises.get(0).getNombre());*/
                         }
                         //System.out.println("Mirador Releases the permit.");
                         sem.release();
@@ -161,7 +172,8 @@ public class ServidorEquipo {
 
                         // create a new thread object 
                         EjecutorPropagacion t = new EjecutorPropagacion(pais);
-                        hilos.add(t);
+                        //hilos.add(t);
+                        hilos.put(pais.getNombre(), t);
 
                         //System.out.println("Principal Releases the permit."); 
                         this.sem.release(); 
@@ -170,9 +182,23 @@ public class ServidorEquipo {
                         t.start(); 
                         System.out.println("Iniciado nuevo hilo para procesar este país"); 
                         
+                        //comunicar al broker que el país se recibió
+                        
+                        ipSender = mensaje.getIpSender();
+                        
+                        nuevoMensaje = new Mensaje();
+                        nuevoMensaje.setIpSender(this.ipServidor);
+                        nuevoMensaje.setPais(pais);
+                        nuevoMensaje.setInstrucccion(6);
+
+                        sender = new SenderEquipo(ipSender, this.puerto);
+                        sender.enviarMensaje( nuevoMensaje );  
+                        System.out.println("Enviada confirmación de recepción "
+                                + "de país al broker");     
+                        
                         break;
                         
-                     case 4: //comunicación inicial con broker
+                    case 4: //comunicación inicial con broker
                          
                         System.out.println("Recibiendo mensaje inicial del broker");
                         
@@ -192,27 +218,87 @@ public class ServidorEquipo {
                          
                         break;
                         
-                     case 3: //reportar rendimiento
+                    case 3: //reportar rendimiento
                          
                         System.out.println("Recibiendo solicitud para reportar procesamiento");
                          
                         ipSender = mensaje.getIpSender();
                         
                         nuevoMensaje = new Mensaje();
-                        mensaje.setIpSender(this.ipServidor);
+                        nuevoMensaje.setIpSender(this.ipServidor);
                         
                         //POR AHORA CON UN RANDOM
-                        Random rand = new Random();
-                        int cpuUsage = rand.nextInt(100);
-                        mensaje.setProcesamientoCPU(cpuUsage);                        
+                        //Random rand = new Random();
+                        //int cpuUsage = rand.nextInt(100);
+                        //mensaje.setProcesamientoCPU(new Long(cpuUsage));     
+                        
+                        long menorProcesamiento = Long.MAX_VALUE;
+                        long mayorProcesamiento = 0;
+                        
+                        this.sem.acquire();
+                        
+                        for (Pais paisRevision : paises) {
+                            if( paisRevision.getPoblacion() < menorProcesamiento ){
+                                menorProcesamiento = paisRevision.getPoblacion();
+                                this.paisMenorProcesamiento = paisRevision;
+                            }
+                            if( paisRevision.getPoblacion() > mayorProcesamiento ){
+                                mayorProcesamiento = paisRevision.getPoblacion();
+                                this.paisMayorProcesamiento = paisRevision;
+                            }
+                        }
+                        
+                        this.sem.release();
                         
                         nuevoMensaje.setPais(null);
                         nuevoMensaje.setInstrucccion(3);
+                        nuevoMensaje.setProcesamientoInferior(menorProcesamiento);
+                        nuevoMensaje.setProcesamientoSuperior(mayorProcesamiento);
 
                         sender = new SenderEquipo(ipSender, this.puerto);
-                        sender.enviarMensaje( mensaje );   
+                        sender.enviarMensaje( nuevoMensaje );   
                         System.out.println("Enviada información de procesamiento al broker");
                          
+                        break;
+                        
+                    case 7: //broker solicitando un país
+                        
+                        System.out.println("Recibiendo solicitud para enviar país");
+                        
+                        this.sem.acquire();
+                        
+                        EjecutorPropagacion ejecutor;
+                        Pais paisSaliente = null;
+                        
+                        if(mensaje.getInstruccionPais() == 0){
+                            
+                            ejecutor = hilos.get(this.paisMenorProcesamiento.getNombre());
+                            //f.pausar();                                                        
+                            //paises.set(0, paisSaliente);                            
+                            
+                        }else{
+                            ejecutor = hilos.get(this.paisMayorProcesamiento.getNombre());                            
+                            //f.doStop();
+                        }
+                        
+                        ejecutor.doStop();
+                        
+                        nuevoMensaje = new Mensaje();
+                        nuevoMensaje.setPais(paisSaliente);
+                        
+                        this.paisMenorProcesamiento = null;
+                        this.paisMayorProcesamiento = null;
+                        
+                        nuevoMensaje.setInstrucccion(2);
+
+                        sender = new SenderEquipo(ipSender, this.puerto);
+                        sender.enviarMensaje( nuevoMensaje );   
+                        System.out.println("Enviado país "+nuevoMensaje.getPais().getNombre()+" al broker");
+                        
+                        hilos.remove(paisSaliente.getNombre());
+                        
+                        this.sem.release();
+                        
                         break;
                         
                 }

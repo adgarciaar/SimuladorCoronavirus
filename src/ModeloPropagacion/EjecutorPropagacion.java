@@ -52,15 +52,17 @@ public class EjecutorPropagacion extends Thread {
     
     @Override
     public void run() {
-        //System.out.println("En ejecución");
-        //this.pais.setPoblacion(50); 
+        
         while(keepRunning()) {   
+            
             try {
-                Thread.sleep(1000);            
+                Thread.sleep(3000);            
                 this.pais.setPoblacion(this.pais.getPoblacion()+10);
+                System.out.println("Incrementando poblacion de "+this.pais.getNombre()+" a "+this.pais.getPoblacion());
             } catch (InterruptedException ex) {
                 Logger.getLogger(EjecutorPropagacion.class.getName()).log(Level.SEVERE, null, ex);
             }
+            
         }
     }       
     
