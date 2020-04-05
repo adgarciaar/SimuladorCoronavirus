@@ -22,7 +22,6 @@ import java.util.logging.Logger;
 import java.util.concurrent.*;
 import ModeloPropagacion.EjecutorPropagacion;
 import java.util.HashMap;
-import java.util.Random;
 
 /**
  *
@@ -30,33 +29,41 @@ import java.util.Random;
  */
 public class ServidorEquipo {
     
-    private String ipServidor;
-    private int puerto;
-    private volatile List<Pais> paises;
+    private String ipServidor; //guarda la ip de la máquina en que se ejecuta
+    private int puerto; //puerto con el que se comunica esta máquina
+    private volatile List<Pais> paises; //lista de países que se están ejecutando en este equipo
     //private volatile List<EjecutorPropagacion> hilos;   
     
+    //mapa para guardar las duplas <Nombre país, Hilo de ejecución de ese país>
     private volatile HashMap<String, EjecutorPropagacion> hilos;
     
-    private volatile Pais paisMayorProcesamiento;
-    private volatile Pais paisMenorProcesamiento;
+    private volatile Pais paisMayorProcesamiento; //guarda el país que tiene mayor procesamiento
+    private volatile Pais paisMenorProcesamiento; //guarda el país que tiene menor procesamiento
     
+    //semáforo para garantizar que las funciones acceden sólo una a la vez
+    //a las variables de esta clase, garantizando consistencia
     private volatile Semaphore sem; 
 
+    //constructor de la clase, se le pasan los países precargados en el archivo
+    //de configuración inicial y el puerto por el que se va a comunicar
     public ServidorEquipo(List<Pais> paises, int puerto){
         
         this.paises = new ArrayList<>(paises);
         this.puerto = puerto;
+        
+        //se inicializa el semáforo con 1, para que sólo una función pueda
+        //acceder a la vez a las variables de la clase
         sem = new Semaphore(1); 
         //hilos = new ArrayList<>(); 
         hilos = new HashMap<>(); 
         
+        //se consigue la ip de la máquina en que se está ejecutando esta función
         InetAddress inetAddress = null;
         try {
             inetAddress = InetAddress.getLocalHost();
         } catch (UnknownHostException ex) {
             Logger.getLogger(ServidorBroker.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
+        }        
         this.ipServidor = inetAddress.getHostAddress();
         
         this.paisMayorProcesamiento = null;
@@ -64,6 +71,9 @@ public class ServidorEquipo {
         
     }
     
+    //esta función inicia un hilo de procesamiento por cada país en la lista 
+    //de países precargados en el equipo. 
+    //Cada hilo ejecuta un modelo de automátas celulares
     public void ejecutarModeloPaisesPrecargados(){
         
         System.out.println("Iniciando procesamiento de países precargados en este equipo"); 
@@ -75,7 +85,7 @@ public class ServidorEquipo {
                 Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
             }
         
-        for (Pais pais : paises) {
+        for (Pais pais : this.paises) {
 
             System.out.println("Recibido localmente el país "+pais.getNombre()+" con "+pais.getPoblacion()+" habitantes");
 
@@ -91,6 +101,7 @@ public class ServidorEquipo {
         this.sem.release(); 
     }
     
+    //esta función se PUEDE encargar de actualizar el estado de cada país    
     public void activarMonitor(){
         
         Thread thread = new Thread(){
@@ -122,6 +133,13 @@ public class ServidorEquipo {
         thread.start();
         
     }
+    
+    //esta función se encarga de estar pendiente de todas las comunicaciones
+    //entrantes al equipo, en un ciclo infinito, que siempre está activo
+    
+    //dependiendo del valor de la variable instruccion de cada mensaje, se
+    //ejecuta cierto bloque de código para actualizar determinadas variables
+    //de esta clase o para retornar respuesta al broker
     
     public void iniciarEscucha(){
         
@@ -230,14 +248,16 @@ public class ServidorEquipo {
                         //POR AHORA CON UN RANDOM
                         //Random rand = new Random();
                         //int cpuUsage = rand.nextInt(100);
-                        //mensaje.setProcesamientoCPU(new Long(cpuUsage));     
+                        //mensaje.setProcesamientoCPU(new Long(cpuUsage)); 
                         
                         long menorProcesamiento = Long.MAX_VALUE;
                         long mayorProcesamiento = 0;
+                        long procesamientoTotal = 0;
                         
                         this.sem.acquire();
                         
                         for (Pais paisRevision : paises) {
+                            procesamientoTotal = procesamientoTotal + paisRevision.getPoblacion();
                             if( paisRevision.getPoblacion() < menorProcesamiento ){
                                 menorProcesamiento = paisRevision.getPoblacion();
                                 this.paisMenorProcesamiento = paisRevision;
@@ -250,6 +270,7 @@ public class ServidorEquipo {
                         
                         this.sem.release();
                         
+                        nuevoMensaje.setProcesamientoCPU(procesamientoTotal);
                         nuevoMensaje.setPais(null);
                         nuevoMensaje.setInstrucccion(3);
                         nuevoMensaje.setProcesamientoInferior(menorProcesamiento);
@@ -315,7 +336,8 @@ public class ServidorEquipo {
         } 
         
     }
-       
+    
+    //esta función se encarga de iniciar la función iniciarEscucha dentro de un hilo
     public void iniciarEscuchaServidor(){
         Runnable task1 = () -> { this.iniciarEscucha();};      
         Thread t1 = new Thread(task1);

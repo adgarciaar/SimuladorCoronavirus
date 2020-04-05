@@ -17,16 +17,20 @@ import java.util.logging.Logger;
  *
  * @author adgar
  */
+
+//esta clase permite crear un socket con el cual un equipo puede enviar un
+//objeto de tipo Mensaje a un broker
 public class SenderEquipo{
     
-    private String ip;
-    private int puerto;
+    private String ip; //ip del broker con que se va a comunicar
+    private int puerto; //puerto por el que se va a comunicar
 
     public SenderEquipo(String ip, int puerto) {
         this.ip = ip;
         this.puerto = puerto;
     }
     
+    //función que envía un objeto de tipo Mensaje al broker especificado
     public void enviarMensaje(Mensaje mensaje){
         
         Socket socket = null;
@@ -36,7 +40,8 @@ public class SenderEquipo{
         } catch (IOException ex) {
             Logger.getLogger(SenderEquipo.class.getName()).log(Level.SEVERE, null, ex);
         }
-        System.out.println("Connected!");
+        System.out.println("Socket creado para conectarse con "+this.ip+" por "
+                + "medio del puerto "+this.puerto);
 
         // get the output stream from the socket.
         OutputStream outputStream = null;
@@ -53,14 +58,14 @@ public class SenderEquipo{
             Logger.getLogger(SenderEquipo.class.getName()).log(Level.SEVERE, null, ex);
         }   
 
-        System.out.println("Sending messages to the ServerSocket");
+        System.out.println("Enviando mensaje al equipo");
         try {
             objectOutputStream.writeObject(mensaje); //enviar objeto
         } catch (IOException ex) {
             Logger.getLogger(SenderEquipo.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        System.out.println("Closing socket and terminating program.");
+        System.out.println("Cerrando socket");
         try {        
             socket.close();
         } catch (IOException ex) {

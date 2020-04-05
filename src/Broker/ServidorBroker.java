@@ -22,7 +22,6 @@ import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import EquipoProcesamiento.ServidorEquipo;
-import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import javafx.util.Pair;
@@ -33,52 +32,76 @@ import javafx.util.Pair;
  */
 public class ServidorBroker {
     
-    private String ipServidor;
-    private int puerto;
-    private volatile List<Pais> paises;
+    private String ipServidor; //guarda la ip de la máquina en que se ejecuta
+    private int puerto; //puerto con el que se comunica esta máquina
+    private volatile List<Pais> paises; //lista de países que se están ejecutando en las diferentes máquinas
     
+    //mapa que guarda duplas < IP de un equipo, Pareja<NúmeroMayorProcesamiento, NúmeroMenorProcesamiento> >
+    //para establecer cómo se va a realizar el balanceo de cargas
     private volatile HashMap< String, Pair<Long, Long> > procesamientoEquipos;
     
+    //mapa que guarda duplas < IP de un equipo, Procesamiento total en ese equipo >
+    //para conocer estados generales de procesamiento de cada equipo
     private volatile HashMap<String, Long> equipos;
+    
+    //mapa que guarda duplas < IP de un equipo, Datos de ese equipo >
+    //para conocer estados de esos equipos
     private volatile HashMap<String, Equipo> notificacionesEquipos;
     
+    //mapa que guarda duplas <Nombre de un país, Datos de ese país>
+    //para realizar el balanceo de cargas
     private volatile HashMap<String, Pais> paisesPorDistribuir;
     //private volatile HashMap<String, String> equiposADistribuir;
     
+    //variable que guarda la IP del equipo al que se va a enviar el próximo agente
     private volatile String equipoADistribuir;
     
-    private Semaphore sem; 
-
-    public ServidorBroker(int puerto, HashMap<String, Long> equipos) {
+    //semáforo para garantizar que las funciones acceden sólo una a la vez
+    //a las variables de esta clase, garantizando consistencia
+    private Semaphore sem;     
+    
+    //constructor de la clase, se le pasan el puerto por el que se va a comunicar
+    //y un mapa con los equipos precargados con los que se va a comunicar
+    public ServidorBroker(int puerto, List<String> equipos) {
         
         this.puerto = puerto;
-        this.equipos = new HashMap<>(equipos);
+        this.equipos = new HashMap<>();
         this.notificacionesEquipos = new HashMap<>();
         
         String ipEquipo;
-        
-        for (HashMap.Entry<String, Long> entry : equipos.entrySet()) {  
+        //para cada equipo que el broker conoce se inicializan unas variables
+        //para conocer su estado
+        for(int i=0; i<equipos.size();i++){
             
-            ipEquipo = entry.getKey();
+            //ipEquipo = entry.getKey();
+            ipEquipo = equipos.get(i);
             
             Equipo equipo = new Equipo();
             equipo.setActivo(false);
             equipo.setNotificacionReporteCargaEnviada(false);
             
             this.notificacionesEquipos.put(ipEquipo, equipo);
-        }
+            
+            this.equipos.put(ipEquipo, 0L);
+        }        
         
+        /*for (List.Entry<String, Long> entry : equipos.entrySet()) {             
+        }*/
+        
+        //se inicializa el semáforo con 1, para que sólo una función pueda
+        //acceder a la vez a las variables de la clase
         this.sem = new Semaphore(1); 
+        
         this.paises = new ArrayList<>();
         this.paisesPorDistribuir = new HashMap<>();
         
+        //se consigue la ip de la máquina en que se está ejecutando esta función
         InetAddress inetAddress = null;
         try {
             inetAddress = InetAddress.getLocalHost();
         } catch (UnknownHostException ex) {
             Logger.getLogger(ServidorBroker.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
+        }        
         this.ipServidor = inetAddress.getHostAddress();
         
         this.procesamientoEquipos = new HashMap();
@@ -88,6 +111,8 @@ public class ServidorBroker {
         //this.equiposADistribuir = new HashMap();
     }
     
+    //función para enviar mensajes de comunicación inicial a cada uno de los
+    //equipos que el broker conoce
     public void establecerComunicacionInicialConEquipos(){
         
         System.out.println("Estableciendo comunicación inicial con equipos");
@@ -123,6 +148,9 @@ public class ServidorBroker {
         
     }
     
+    //función que envía mensaje a cada uno de los equipos que el broker conoce
+    //para preguntarles su carga de procesamiento
+    //esta función se ejecuta periódicamente
     public void solicitarCargaEquipos(){
         
         TimerTask task = new TimerTask() {
@@ -178,6 +206,9 @@ public class ServidorBroker {
         
     }
     
+    //función que envía mensajes a los equipos a los cuales se les solicita
+    //enviar un agente al broker, para realizar el balanceo de cargas
+    //esta función se ejecuta periódicamente
     public void solicitarPaisesParaDistribuir(){
         
         TimerTask task = new TimerTask() {
@@ -290,6 +321,9 @@ public class ServidorBroker {
         timer.schedule(task, tiempoInicialEspera, tiempoPeriodicoEjecucion);
     }
     
+    //función que se encarga de enviar agentes a equipos para que estos sean
+    //procesados, consiguiendo balancear las cargas
+    //esta función se ejecuta periódicamente
     public void realizarDistribucion(){
         
         TimerTask task = new TimerTask() {
@@ -407,6 +441,13 @@ public class ServidorBroker {
         
     }
 
+    //esta función se encarga de estar pendiente de todas las comunicaciones
+    //entrantes al broker, en un ciclo infinito, que siempre está activo
+    
+    //dependiendo del valor de la variable instruccion de cada mensaje, se
+    //ejecuta cierto bloque de código para actualizar determinadas variables
+    //de esta clase
+    
     public void iniciarEscucha(){
         
         ServerSocket ss = null;
@@ -541,6 +582,7 @@ public class ServidorBroker {
         
     } 
 
+    //esta función se encarga de iniciar la función iniciarEscucha dentro de un hilo
     public void iniciarEscuchaServidor(){
         Runnable task1 = () -> { this.iniciarEscucha();};      
         Thread t1 = new Thread(task1);

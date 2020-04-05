@@ -20,6 +20,10 @@ import java.util.Scanner; // Import the Scanner class to read text files
  *
  * @author adgar
  */
+
+//esta clase se encarga de iniciar el programa en la máquina en que se encuentre
+//ya sea como broker o como un equipo de procesamiento
+//dependiendo de los datos en el archivo de configuración
 public class Inicio {
     
     public static void main(String args[]) {
@@ -27,7 +31,7 @@ public class Inicio {
         List<String> instruccionesConfiguracion = new ArrayList<>();
                 
         try {
-            File myObj = new File("././configuracion.txt");
+            File myObj = new File("././configuracionDistribuir.txt");
             try (Scanner myReader = new Scanner(myObj)) {
                 while (myReader.hasNextLine()) {
                     String data = myReader.nextLine();
@@ -47,7 +51,8 @@ public class Inicio {
         //si es un broker
         if(instruccionesConfiguracion.get(0).equals("broker\tsi")){
             
-            HashMap<String, Long> equipos = new HashMap<>();
+            //HashMap<String, Long> equipos = new HashMap<>();
+            List<String> equipos = new ArrayList<>();
             
             String[] arrayLinea = instruccionesConfiguracion.get(1).split("\t");
             int puerto = Integer.parseInt( arrayLinea[1] );
@@ -63,7 +68,8 @@ public class Inicio {
                 
                 ipSiguienteEquipo = instruccionesConfiguracion.get(i);
                 
-                equipos.put(ipSiguienteEquipo, 0L);
+                //equipos.put(ipSiguienteEquipo, 0L);
+                equipos.add(ipSiguienteEquipo);
                 
                 System.out.println(ipSiguienteEquipo);
             }
@@ -74,6 +80,7 @@ public class Inicio {
             servidorBroker.iniciarEscuchaServidor();
             servidorBroker.establecerComunicacionInicialConEquipos();
             servidorBroker.solicitarCargaEquipos();    
+            servidorBroker.solicitarPaisesParaDistribuir();
             servidorBroker.realizarDistribucion();
             
         //si no es un broker
@@ -109,6 +116,8 @@ public class Inicio {
             
             ServidorEquipo servidor = new ServidorEquipo(paises, puerto);
             
+            //iniciar el servidor del equipo de procesamiento
+            //el cual se queda esperando por la comunicación inicial de un broker
             servidor.iniciarEscuchaServidor();
         }
         

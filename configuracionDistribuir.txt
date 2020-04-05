@@ -1,0 +1,5 @@
+broker	no
+puerto	7777
+paises	2
+Estados Unidos	4000
+Suecia	10327600

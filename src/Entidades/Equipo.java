@@ -9,6 +9,8 @@ package Entidades;
  *
  * @author adgar
  */
+
+//clase que guarda los datos de estado general de cada equipo de procesamiento 
 public class Equipo {
     
     private boolean activo;

@@ -11,6 +11,8 @@ import java.io.Serializable;
  *
  * @author adgar
  */
+
+//clase para representar cada país
 public class Pais implements Serializable{
     
     private String nombre;

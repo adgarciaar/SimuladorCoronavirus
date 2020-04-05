@@ -11,21 +11,35 @@ import java.io.Serializable;
  *
  * @author adgar
  */
+
+//clase cuyos parámetros permiten establecer una comunicación entre los brokers
+//y los equipos de procesamiento
 public class Mensaje implements Serializable {
     
-    private Pais pais;
-    private int instrucccion; 
+    //variable para indicar el tipo de operación requerida o a realizar
+    //tanto para broker como para equipo de procesamiento
+    //los valores que puede tomar con los siguientes
+    
     //1 entregarPaisAEquipo, 2 entregarPaisABroker, 3 entregarRendimiento
     //4 realizarPrimeraComunicacion, 5 distribuirVirus, 6 paísRecibidoParaProcesar
     //7 equipoEntregandoPaisABroker
+    private int instrucccion; 
     
-    private String ipSender;
-    private Long procesamientoCPU;
+    private Pais pais; //país que se está trasladando (nulo si se está realizando otra operación)    
     
+    private String ipSender; //ip de la máquina que envía el mensaje
+    
+    //procesamiento total de la máquina (en caso de que sea equipo de procesamiento)
+    private Long procesamientoCPU; 
+    
+    //procesamiento del agente con menor procesamiento (en caso de que sea equipo de procesamiento)
     private Long procesamientoInferior;
+    //procesamiento del agente con mayor procesamiento (en caso de que sea equipo de procesamiento)
     private Long procesamientoSuperior;
     
-    private int instruccionPais; //para saber qué país retornar a broker
+    //variable para indicar a un equipo qué país retornar al broker, 
+    //cuando se va a iniciar el balanceo de cargas
+    private int instruccionPais; 
 
     public Mensaje() {
     }

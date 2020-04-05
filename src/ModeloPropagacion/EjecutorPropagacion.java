@@ -13,11 +13,12 @@ import java.util.logging.Logger;
  *
  * @author adgar
  */
+
+//clase para ejecutar el modelo de automátas celulares
 public class EjecutorPropagacion extends Thread {
     
-    private Pais pais;
-    private long x=0;
-    private boolean doStop = false;
+    private Pais pais; //país para el modelo   
+    private boolean doStop = false; //variable para detener 
 
     public EjecutorPropagacion() {
     }
@@ -34,14 +35,17 @@ public class EjecutorPropagacion extends Thread {
         this.pais = pais;
     }
     
+    //función para detener la ejecución del hilo
     public synchronized void doStop() {
         this.doStop = true;        
     }
 
+    //función para conocer si el hilo debe continuar en ejecución 
     private synchronized boolean keepRunning() {
         return this.doStop == false;
     }
     
+    //función para pausar la ejecución del hilo
     public void pausar(){
         try {
             Thread.sleep(1000);
@@ -50,6 +54,7 @@ public class EjecutorPropagacion extends Thread {
         }
     }
     
+    //función para ejecutar el modelo de automátas celulares
     @Override
     public void run() {
         
