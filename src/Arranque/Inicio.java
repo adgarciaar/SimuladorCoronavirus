@@ -8,6 +8,8 @@ package Arranque;
 import EquipoProcesamiento.ServidorEquipo;
 import Broker.ServidorBroker;
 import Entidades.Pais;
+import Entidades.Virus;
+
 import java.io.File;  // Import the File class
 import java.io.FileNotFoundException;  // Import this class to handle errors
 import java.util.ArrayList;
@@ -91,21 +93,27 @@ public class Inicio {
             
             List<Pais> paises = new ArrayList<>();
             
-            arrayLinea = instruccionesConfiguracion.get(2).split("\t");
+            String[] datosVirus;
+            datosVirus = instruccionesConfiguracion.get(2).split("\t");
+            
+            Virus virus = new Virus(Double.parseDouble(datosVirus[1]),Double.parseDouble(datosVirus[2]));
+            
+            arrayLinea = instruccionesConfiguracion.get(3).split("\t");
             int numeroPaises = Integer.parseInt(arrayLinea[1]);
+            
             
             System.out.println("Número de países en este precargados en este equipo: "+numeroPaises+"\n");
             
             Pais pais;
             String[] datosSiguientePais;
             
-            for (int i = 3; i < 3+numeroPaises; i++) {
+            for (int i = 4; i < 4+numeroPaises; i++) {
                 
                 datosSiguientePais = instruccionesConfiguracion.get(i).split("\t");
                 
-                pais = new Pais();
-                pais.setNombre( datosSiguientePais[0] );
-                pais.setPoblacion( Integer.parseInt(datosSiguientePais[1]) );
+                pais = new Pais(datosSiguientePais[0],Integer.parseInt(datosSiguientePais[1]),Double.parseDouble(datosSiguientePais[2]),Double.parseDouble(datosSiguientePais[3]),Integer.parseInt(datosSiguientePais[4]), virus);
+                //pais.setNombre( datosSiguientePais[0] );
+                //pais.setPoblacion( Integer.parseInt(datosSiguientePais[1]) );
                 
                 paises.add(pais);
                 
