@@ -36,6 +36,9 @@ public class ServidorBroker {
     private int puerto; //puerto con el que se comunica esta máquina
     private volatile List<Pais> paises; //lista de países que se están ejecutando en las diferentes máquinas
     
+    //mapa que guarda tuplas < Nombre de un país, IP del equipo donde se está ejecutando >
+    private volatile HashMap<String, String> paisesEnEquipos;
+    
     //mapa que guarda duplas < IP de un equipo, Pareja<NúmeroMayorProcesamiento, NúmeroMenorProcesamiento> >
     //para establecer cómo se va a realizar el balanceo de cargas
     private volatile HashMap< String, Pair<Long, Long> > procesamientoEquipos;
@@ -67,6 +70,7 @@ public class ServidorBroker {
         this.puerto = puerto;
         this.equipos = new HashMap<>();
         this.notificacionesEquipos = new HashMap<>();
+        this.paisesEnEquipos = new HashMap<>();
         
         String ipEquipo;
         //para cada equipo que el broker conoce se inicializan unas variables
@@ -489,10 +493,13 @@ public class ServidorBroker {
                     
                     case 4: //recibiendo primera comunicación con un equipo
                         
+                        List<Pais> paisesInicio;
+                        
                         System.out.println("Recibiendo respuesta inicial de equipo");
                         
                         ipSender = mensaje.getIpSender();
                         procesamientoCPU = mensaje.getProcesamientoCPU();
+                        paisesInicio = mensaje.getPaisesInicio();
 
                         this.sem.acquire();
 
@@ -505,6 +512,17 @@ public class ServidorBroker {
                         
                         pareja = new Pair<>(0L, 0L); 
                         this.procesamientoEquipos.put(ipSender, pareja);
+                        
+                        this.paises.addAll(paisesInicio);
+                        for(int i=0; i<paisesInicio.size(); i++){
+                            if( this.paisesEnEquipos.get( paisesInicio.get(i).getNombre() )!=null ){
+                                System.out.println("Error: se ha duplicado un país en los equipos de procesamiento.");
+                                System.exit(1);
+                            }
+                            this.paisesEnEquipos.put(paisesInicio.get(i).getNombre()
+                                    , ipSender);
+                            System.out.println("Agregado a la lista del broker el país "+paisesInicio.get(i).getNombre());
+                        }
 
                         this.sem.release();                 
                         

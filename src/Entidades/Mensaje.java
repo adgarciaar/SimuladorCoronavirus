@@ -6,6 +6,7 @@
 package Entidades;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  *
@@ -40,6 +41,8 @@ public class Mensaje implements Serializable {
     //variable para indicar a un equipo qué país retornar al broker, 
     //cuando se va a iniciar el balanceo de cargas
     private int instruccionPais; 
+    
+    private List<Pais> paisesInicio;
 
     public Mensaje() {
     }
@@ -98,6 +101,14 @@ public class Mensaje implements Serializable {
 
     public void setInstruccionPais(int instruccionPais) {
         this.instruccionPais = instruccionPais;
+    }
+
+    public List<Pais> getPaisesInicio() {
+        return paisesInicio;
+    }
+
+    public void setPaisesInicio(List<Pais> paisesInicio) {
+        this.paisesInicio = paisesInicio;
     }
     
 }

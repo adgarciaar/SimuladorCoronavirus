@@ -229,6 +229,7 @@ public class ServidorEquipo {
                         nuevoMensaje.setIpSender(this.ipServidor);
                         nuevoMensaje.setPais(null);
                         nuevoMensaje.setInstrucccion(4);
+                        nuevoMensaje.setPaisesInicio(this.paises);
 
                         sender = new SenderEquipo(ipSender, this.puerto);
                         sender.enviarMensaje( nuevoMensaje );  
@@ -329,7 +330,8 @@ public class ServidorEquipo {
                 try { 
                     socket.close();
                 } catch (IOException ex) {
-                    Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
+                    System.out.println("Problema al cerrar socket");
+                    System.exit(1);
                 }
                 e.printStackTrace(); 
             } 
