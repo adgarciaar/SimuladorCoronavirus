@@ -21,6 +21,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.concurrent.*;
 import ModeloPropagacion.EjecutorPropagacion;
+import java.util.Arrays;
 import java.util.HashMap;
 
 /**
@@ -31,14 +32,10 @@ public class ServidorEquipo {
     
     private String ipServidor; //guarda la ip de la máquina en que se ejecuta
     private int puerto; //puerto con el que se comunica esta máquina
-    private volatile List<Pais> paises; //lista de países que se están ejecutando en este equipo
-    //private volatile List<EjecutorPropagacion> hilos;   
+    private volatile List<Pais> paises; //lista de países que se están ejecutando en este equipo  
     
     //mapa para guardar las duplas <Nombre país, Hilo de ejecución de ese país>
     private volatile HashMap<String, EjecutorPropagacion> hilos;
-    
-    private volatile Pais paisMayorProcesamiento; //guarda el país que tiene mayor procesamiento
-    private volatile Pais paisMenorProcesamiento; //guarda el país que tiene menor procesamiento
     
     //semáforo para garantizar que las funciones acceden sólo una a la vez
     //a las variables de esta clase, garantizando consistencia
@@ -65,9 +62,6 @@ public class ServidorEquipo {
             Logger.getLogger(ServidorBroker.class.getName()).log(Level.SEVERE, null, ex);
         }        
         this.ipServidor = inetAddress.getHostAddress();
-        
-        this.paisMayorProcesamiento = null;
-        this.paisMenorProcesamiento = null;
         
     }
     
@@ -99,6 +93,37 @@ public class ServidorEquipo {
         }
         
         this.sem.release(); 
+    }
+    
+    public static void quickSort(long[] arr, int start, int end){
+ 
+        int partition = partition(arr, start, end);
+ 
+        if(partition-1>start) {
+            quickSort(arr, start, partition - 1);
+        }
+        if(partition+1<end) {
+            quickSort(arr, partition + 1, end);
+        }
+    }
+ 
+    public static int partition(long[] arr, int start, int end){
+        int pivot = (int) arr[end];
+ 
+        for(int i=start; i<end; i++){
+            if(arr[i]<pivot){
+                int temp= (int) arr[start];
+                arr[start]=arr[i];
+                arr[i]=temp;
+                start++;
+            }
+        }
+ 
+        int temp = (int) arr[start];
+        arr[start] = pivot;
+        arr[end] = temp;
+ 
+        return start;
     }
     
     //esta función se PUEDE encargar de actualizar el estado de cada país    
@@ -176,6 +201,8 @@ public class ServidorEquipo {
                 Mensaje nuevoMensaje = null;
                 SenderEquipo sender = null;
                 
+                long procesamientoTotal = 0;
+                
                 switch(mensaje.getInstrucccion()) {
                     
                     case 1: //recibiendo país desde broker
@@ -192,8 +219,7 @@ public class ServidorEquipo {
                         EjecutorPropagacion t = new EjecutorPropagacion(pais);
                         //hilos.add(t);
                         hilos.put(pais.getNombre(), t);
-
-                        //System.out.println("Principal Releases the permit."); 
+                        
                         this.sem.release(); 
 
                         // Invoking the start() method                         
@@ -230,6 +256,18 @@ public class ServidorEquipo {
                         nuevoMensaje.setPais(null);
                         nuevoMensaje.setInstrucccion(4);
                         nuevoMensaje.setPaisesInicio(this.paises);
+                        
+                        this.sem.acquire();
+                        
+                        procesamientoTotal = 0;
+                        for (Pais paisRevision : paises) {
+                            procesamientoTotal = procesamientoTotal + paisRevision.getPoblacion();
+                        }
+                        
+                        this.sem.release();
+                        
+                        nuevoMensaje.setProcesamientoEquipo(procesamientoTotal);
+                        nuevoMensaje.setNumeroPaisesProcesando(this.paises.size());
 
                         sender = new SenderEquipo(ipSender, this.puerto);
                         sender.enviarMensaje( nuevoMensaje );  
@@ -246,36 +284,30 @@ public class ServidorEquipo {
                         nuevoMensaje = new Mensaje();
                         nuevoMensaje.setIpSender(this.ipServidor);
                         
-                        //POR AHORA CON UN RANDOM
-                        //Random rand = new Random();
-                        //int cpuUsage = rand.nextInt(100);
-                        //mensaje.setProcesamientoCPU(new Long(cpuUsage)); 
-                        
-                        long menorProcesamiento = Long.MAX_VALUE;
-                        long mayorProcesamiento = 0;
-                        long procesamientoTotal = 0;
-                        
                         this.sem.acquire();
                         
-                        for (Pais paisRevision : paises) {
-                            procesamientoTotal = procesamientoTotal + paisRevision.getPoblacion();
-                            if( paisRevision.getPoblacion() < menorProcesamiento ){
-                                menorProcesamiento = paisRevision.getPoblacion();
-                                this.paisMenorProcesamiento = paisRevision;
-                            }
-                            if( paisRevision.getPoblacion() > mayorProcesamiento ){
-                                mayorProcesamiento = paisRevision.getPoblacion();
-                                this.paisMayorProcesamiento = paisRevision;
-                            }
+                        long[] cargaPaisesPorEquipo = new long[ this.paises.size() ];
+                        
+                        procesamientoTotal = 0;
+                        
+                        int index = 0;
+                        for (Pais paisRevision : paises) {                            
+                            procesamientoTotal = procesamientoTotal + paisRevision.getPoblacion();                            
+                            cargaPaisesPorEquipo[ index ] = paisRevision.getPoblacion();
+                            index = index + 1;
                         }
                         
                         this.sem.release();
                         
-                        nuevoMensaje.setProcesamientoCPU(procesamientoTotal);
+                        //ordenar de menor a mayor la carga de los países
+                        quickSort(cargaPaisesPorEquipo, 0, cargaPaisesPorEquipo.length-1);
+                        System.out.println(Arrays.toString(cargaPaisesPorEquipo));
+                        
+                        nuevoMensaje.setProcesamientoEquipo(procesamientoTotal);
+                        nuevoMensaje.setNumeroPaisesProcesando(this.paises.size());
                         nuevoMensaje.setPais(null);
-                        nuevoMensaje.setInstrucccion(3);
-                        nuevoMensaje.setProcesamientoInferior(menorProcesamiento);
-                        nuevoMensaje.setProcesamientoSuperior(mayorProcesamiento);
+                        nuevoMensaje.setInstrucccion(3);      
+                        nuevoMensaje.setCargaPaisesPorEquipo(cargaPaisesPorEquipo);
 
                         sender = new SenderEquipo(ipSender, this.puerto);
                         sender.enviarMensaje( nuevoMensaje );   
@@ -285,6 +317,8 @@ public class ServidorEquipo {
                         
                     case 7: //broker solicitando un país
                         
+                        //Se va a enviar el país con menor población
+                        
                         System.out.println("Recibiendo solicitud para enviar país");
                         
                         this.sem.acquire();
@@ -292,24 +326,25 @@ public class ServidorEquipo {
                         EjecutorPropagacion ejecutor;
                         Pais paisSaliente = null;
                         
-                        if(mensaje.getInstruccionPais() == 0){
-                            
-                            ejecutor = hilos.get(this.paisMenorProcesamiento.getNombre());
-                            //f.pausar();                                                        
-                            //paises.set(0, paisSaliente);                            
-                            
-                        }else{
-                            ejecutor = hilos.get(this.paisMayorProcesamiento.getNombre());                            
-                            //f.doStop();
-                        }
+                        long menorPoblacion = Long.MAX_VALUE;
                         
+                        int i = 0;
+                        for (Pais paisRevision : paises) {
+                            if( paisRevision.getPoblacion() < menorPoblacion ){
+                                menorPoblacion = paisRevision.getPoblacion();
+                                paisSaliente =  paisRevision;
+                            }
+                            i = i + 1;
+                        }                        
+                        
+                        //detener la ejecución del modelo de ese país
+                        ejecutor = hilos.get( paisSaliente.getNombre() );
                         ejecutor.doStop();
+                        //quitar el país de la lista de países
+                        this.paises.remove(i);
                         
                         nuevoMensaje = new Mensaje();
                         nuevoMensaje.setPais(paisSaliente);
-                        
-                        this.paisMenorProcesamiento = null;
-                        this.paisMayorProcesamiento = null;
                         
                         nuevoMensaje.setInstrucccion(2);
 
@@ -333,7 +368,7 @@ public class ServidorEquipo {
                     System.out.println("Problema al cerrar socket");
                     System.exit(1);
                 }
-                e.printStackTrace(); 
+                //e.printStackTrace(); 
             } 
         } 
         

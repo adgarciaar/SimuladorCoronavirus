@@ -15,6 +15,7 @@ public class Equipo {
     
     private boolean activo;
     private boolean notificacionReporteCargaEnviada;
+    private boolean respuestaEntregada;
 
     public Equipo() {
     }    
@@ -33,6 +34,14 @@ public class Equipo {
 
     public void setNotificacionReporteCargaEnviada(boolean notificacionReporteCargaEnviada) {
         this.notificacionReporteCargaEnviada = notificacionReporteCargaEnviada;
+    }
+
+    public boolean isRespuestaEntregada() {
+        return respuestaEntregada;
+    }
+
+    public void setRespuestaEntregada(boolean respuestaEntregada) {
+        this.respuestaEntregada = respuestaEntregada;
     }
     
 }

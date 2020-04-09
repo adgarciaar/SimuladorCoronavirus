@@ -22,6 +22,7 @@ import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import EquipoProcesamiento.ServidorEquipo;
+import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 import javafx.util.Pair;
@@ -41,15 +42,18 @@ public class ServidorBroker {
     
     //mapa que guarda duplas < IP de un equipo, Pareja<NúmeroMayorProcesamiento, NúmeroMenorProcesamiento> >
     //para establecer cómo se va a realizar el balanceo de cargas
-    private volatile HashMap< String, Pair<Long, Long> > procesamientoEquipos;
+    private volatile HashMap< String, Integer > paisesProcesandosePorEquipo;
     
     //mapa que guarda duplas < IP de un equipo, Procesamiento total en ese equipo >
     //para conocer estados generales de procesamiento de cada equipo
-    private volatile HashMap<String, Long> equipos;
+    private volatile HashMap<String, Long> cargaPorEquipo;
+    
+    //mapa que guarda duplas < IP de un equipo, Lista de carga de cada país en ese equipo >
+    private volatile HashMap< String, long[] > cargaPaisesPorEquipo;
     
     //mapa que guarda duplas < IP de un equipo, Datos de ese equipo >
     //para conocer estados de esos equipos
-    private volatile HashMap<String, Equipo> notificacionesEquipos;
+    private volatile HashMap<String, Equipo> estadosEquipos;
     
     //mapa que guarda duplas <Nombre de un país, Datos de ese país>
     //para realizar el balanceo de cargas
@@ -68,9 +72,12 @@ public class ServidorBroker {
     public ServidorBroker(int puerto, List<String> equipos) {
         
         this.puerto = puerto;
-        this.equipos = new HashMap<>();
-        this.notificacionesEquipos = new HashMap<>();
+        this.cargaPorEquipo = new HashMap<>();
+        this.estadosEquipos = new HashMap<>();
         this.paisesEnEquipos = new HashMap<>();
+        this.paisesProcesandosePorEquipo = new HashMap();
+        this.cargaPaisesPorEquipo = new HashMap();
+        this.equipoADistribuir = null;
         
         String ipEquipo;
         //para cada equipo que el broker conoce se inicializan unas variables
@@ -81,16 +88,15 @@ public class ServidorBroker {
             ipEquipo = equipos.get(i);
             
             Equipo equipo = new Equipo();
-            equipo.setActivo(false);
+            equipo.setActivo(false); //se inicializa equipo como inactivo
             equipo.setNotificacionReporteCargaEnviada(false);
+            equipo.setRespuestaEntregada(false);
             
-            this.notificacionesEquipos.put(ipEquipo, equipo);
-            
-            this.equipos.put(ipEquipo, 0L);
+            this.estadosEquipos.put(ipEquipo, equipo);
+            //se inicializa la carga de cada equipo en 0
+            this.cargaPorEquipo.put(ipEquipo, 0L);
+            this.cargaPaisesPorEquipo.put(ipEquipo, null);
         }        
-        
-        /*for (List.Entry<String, Long> entry : equipos.entrySet()) {             
-        }*/
         
         //se inicializa el semáforo con 1, para que sólo una función pueda
         //acceder a la vez a las variables de la clase
@@ -104,15 +110,11 @@ public class ServidorBroker {
         try {
             inetAddress = InetAddress.getLocalHost();
         } catch (UnknownHostException ex) {
-            Logger.getLogger(ServidorBroker.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Error al conseguir la dirección IP de la máquina actual");
+            System.exit(1);
         }        
         this.ipServidor = inetAddress.getHostAddress();
-        
-        this.procesamientoEquipos = new HashMap();
-        
-        this.equipoADistribuir = null;
-        
-        //this.equiposADistribuir = new HashMap();
+       
     }
     
     //función para enviar mensajes de comunicación inicial a cada uno de los
@@ -129,7 +131,7 @@ public class ServidorBroker {
             Logger.getLogger(ServidorBroker.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-        for (HashMap.Entry<String, Long> entry : equipos.entrySet()) {
+        for (HashMap.Entry<String, Equipo> entry : this.estadosEquipos.entrySet()) {
             
             ipEquipo = entry.getKey();
             
@@ -142,9 +144,9 @@ public class ServidorBroker {
             sender.enviarMensaje( mensaje );      
             System.out.println("Enviado mensaje inicial a "+ipEquipo);
             
-            Equipo equipo = this.notificacionesEquipos.get(ipEquipo);
+            Equipo equipo = this.estadosEquipos.get(ipEquipo);
             equipo.setNotificacionReporteCargaEnviada(true);
-            this.notificacionesEquipos.replace(ipEquipo, equipo);
+            this.estadosEquipos.replace(ipEquipo, equipo);
             
         }
         
@@ -172,7 +174,7 @@ public class ServidorBroker {
                     Logger.getLogger(ServidorBroker.class.getName()).log(Level.SEVERE, null, ex);
                 }
         
-                for (HashMap.Entry<String, Long> entry : equipos.entrySet()) {
+                for (HashMap.Entry<String, Equipo> entry : estadosEquipos.entrySet()) {
 
                     ipEquipo = entry.getKey();
 
@@ -186,10 +188,11 @@ public class ServidorBroker {
                     System.out.println("Enviada solicitud de información de "
                             + "procesamiento a "+ipEquipo);
                     
-                    Equipo equipo = notificacionesEquipos.get(ipEquipo);
-                    equipo.setActivo(false);
+                    Equipo equipo = estadosEquipos.get(ipEquipo);
+                    //equipo.setActivo(false);
                     equipo.setNotificacionReporteCargaEnviada(true);
-                    notificacionesEquipos.replace(ipEquipo, equipo);
+                    equipo.setRespuestaEntregada(false);
+                    estadosEquipos.replace(ipEquipo, equipo);
                 }
                 
                 sem.release();
@@ -203,7 +206,7 @@ public class ServidorBroker {
         //tiempo (ms) que dura para ejecutarse cada vez
         int tiempoPeriodicoEjecucion = 30000;
         //tiempo (ms) que dura para ejecutarse la primera vez
-        int tiempoInicialEspera = 10000;
+        int tiempoInicialEspera = 30000;
         
         //la tarea se ejecuta cada t segundos
         timer.schedule(task, tiempoInicialEspera, tiempoPeriodicoEjecucion);
@@ -213,102 +216,68 @@ public class ServidorBroker {
     //función que envía mensajes a los equipos a los cuales se les solicita
     //enviar un agente al broker, para realizar el balanceo de cargas
     //esta función se ejecuta periódicamente
-    public void solicitarPaisesParaDistribuir(){
+    public void definirDistribucion(){
         
         TimerTask task = new TimerTask() {
 
             @Override
-            public void run() {
+            public void run() {              
                 
-                String ipEquipo = null;
-                String ipEquipoMenor = null, ipEquipoMayor = null;
-                long procesamiento;                
-                long menor = Long.MAX_VALUE, mayor = 0;
+                String equipoConMayorProcesamiento = null;
+                String equipoConMenorProcesamiento = null;
+                Long menorProcesamiento = Long.MAX_VALUE;
+                Long mayorProcesamiento = Long.MIN_VALUE;
+                Equipo equipo;
                 
                 try {
                     sem.acquire();
                 } catch (InterruptedException ex) {
-                    Logger.getLogger(ServidorBroker.class.getName()).log(Level.SEVERE, null, ex);
+                    System.out.println("Error al intentar activar semáforo");
+                    System.exit(1);
                 }
                 
-                for (HashMap.Entry<String, Long> entry : equipos.entrySet()) {
-
-                    ipEquipo = entry.getKey();
-                    procesamiento = entry.getValue();
-                    if( procesamiento<menor && notificacionesEquipos.get(ipEquipo).isActivo() ){
-                        ipEquipoMenor = ipEquipo;
-                        menor = procesamiento;
+                //verificar si la carga de los equipos es igual o diferente
+                List<Long> valoresCargaEquipos = (List<Long>)cargaPorEquipo.values();
+                Long procesamientoIgual = valoresCargaEquipos.get(0);
+                boolean todosTienenMismaCarga = true;
+                for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {
+                    if( procesamientoIgual != entry.getValue() ){
+                        todosTienenMismaCarga = false;
+                        break;
                     }
-                    if( procesamiento>menor && notificacionesEquipos.get(ipEquipo).isActivo() ){
-                        ipEquipoMenor = ipEquipo;
-                        mayor = procesamiento;
-                    }   
-                    
                 }
                 
+                //si todos tienen diferente carga entonces hay que balancear
+                if( todosTienenMismaCarga == false ){
                 
-                
-                if(ipEquipoMenor != null && ipEquipoMayor != null){
-                    
-                    //revisar qué países pedir
-                    
-                    //Pair<Long, Long> parejaMenor = procesamientoEquipos.get(ipEquipoMenor);
-                    Pair<Long, Long> parejaMayor = procesamientoEquipos.get(ipEquipoMayor);
-                    
-                    //long menorDelEquipoMenor = parejaMenor.getKey();
-                    //long mayorDelEquipoMenor = parejaMenor.getValue();
-                    long menorDelEquipoMayor = parejaMayor.getKey();
-                    long mayorDelEquipoMayor = parejaMayor.getValue();
-                    
-                    long nuevoProcesamientoMenor1 = menor + mayorDelEquipoMayor;
-                    long nuevoProcesamientoMenor2 = menor + menorDelEquipoMayor;
-                    
-                    long nuevoProcesamientoMayor1 = mayor - mayorDelEquipoMayor;
-                    long nuevoProcesamientoMayor2 = mayor - menorDelEquipoMayor;
-                    
-                    if( Math.abs(nuevoProcesamientoMayor1 - nuevoProcesamientoMenor1) < Math.abs(mayor-menor)
-                            && Math.abs(nuevoProcesamientoMayor1 - nuevoProcesamientoMenor1) < 
-                            Math.abs(nuevoProcesamientoMayor2 - nuevoProcesamientoMenor2) ){
-                        
-                        Mensaje mensaje = new Mensaje();
-                        mensaje.setIpSender(ipEquipoMayor);
-                        mensaje.setPais(null);
-                        mensaje.setInstrucccion(7);
-                        mensaje.setInstruccionPais(1); //para obtener el país con mayor procesamiento
-                        
-                        equipoADistribuir = ipEquipoMenor;         
+                    //conocer el equipo que tiene mayor y menor carga de procesamiento
+                    for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {
 
-                        SenderBroker sender = new SenderBroker(ipEquipoMayor, puerto);
-                        sender.enviarMensaje( mensaje );
-                        System.out.println("Enviada solicitud para solicitar país desde equipo "+ipEquipoMayor);
-                        
-                    }else{
-                        
-                        if( Math.abs(nuevoProcesamientoMayor2 - nuevoProcesamientoMenor2) < (mayor-menor) 
-                            && Math.abs(nuevoProcesamientoMayor2 - nuevoProcesamientoMenor2) < 
-                            Math.abs(nuevoProcesamientoMayor1 - nuevoProcesamientoMenor1) ){
-                            
-                            Mensaje mensaje = new Mensaje();
-                            mensaje.setIpSender(ipEquipoMayor);
-                            mensaje.setPais(null);
-                            mensaje.setInstrucccion(7);
-                            mensaje.setInstruccionPais(0); //para obtener el país con menor procesamiento
-                            
-                            equipoADistribuir = ipEquipoMenor;
+                        equipo = estadosEquipos.get(entry.getKey());                   
 
-                            SenderBroker sender = new SenderBroker(ipEquipoMayor, puerto);
-                            sender.enviarMensaje( mensaje );
-                            System.out.println("Enviada solicitud para solicitar país desde equipo "+ipEquipoMayor);
-                        
-                        }                        
-                        
-                        equipoADistribuir = null;
-                        
+                        if( equipo.isActivo() == true ){
+
+                            if( entry.getValue() < menorProcesamiento ){
+                                menorProcesamiento = entry.getValue();
+                                equipoConMenorProcesamiento = entry.getKey();
+                            }
+                            if( entry.getValue() > mayorProcesamiento ){
+                                mayorProcesamiento = entry.getValue();
+                                equipoConMayorProcesamiento = entry.getKey();
+                            }
+
+                        }                    
                     }
-                   
+                    
+                    //tomar el agente con menor procesamiento
+                    //del equipo con mayor procesamiento
+                    //(cuando ese equipo ejecuta más de 1 agente)
+                    //y darselo al equipo con menos procesamiento
+                    //pero antes revisar si se disminuye la desviación estándar
+                
+                }
+                
                 sem.release();
-                    
-                }
                 
             }
         };
@@ -319,7 +288,7 @@ public class ServidorBroker {
         //tiempo (ms) que dura para ejecutarse cada vez
         int tiempoPeriodicoEjecucion = 30000;
         //tiempo (ms) que dura para ejecutarse la primera vez
-        int tiempoInicialEspera = 20000;
+        int tiempoInicialEspera = 60000;
         
         //la tarea se ejecuta cada t segundos
         timer.schedule(task, tiempoInicialEspera, tiempoPeriodicoEjecucion);
@@ -337,99 +306,28 @@ public class ServidorBroker {
                 
                     System.out.println("Distribuidor activado");
                     
-                    if(paisesPorDistribuir.size()>0){
-                    
-                        try {
-
-                            sem.acquire();
-                        } catch (InterruptedException ex) {
-                            Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                        
-                        Pais paisAEnviar = null; 
-                        
-                        for (HashMap.Entry<String, Pais> entry : paisesPorDistribuir.entrySet()) {
-
-                            paisAEnviar = entry.getValue();
-                            
-                        }
-                        
-                        Mensaje mensaje = new Mensaje();
-                        
-                        if(equipoADistribuir == null){//entonces decidir aleatoriamente                            
-                            
-                            //Random rand = new Random();
-                            //int cpuUsage = rand.nextInt(equipos.size());
-                            
-                            String equipoAUsar = null;
-                            long menorProcesamiento = Long.MAX_VALUE;
-                            for (HashMap.Entry<String, Long> entrada : equipos.entrySet()) {
-                                String ipEquipoTemp = entrada.getKey();
-                                if( entrada.getValue() < menorProcesamiento && notificacionesEquipos.get(ipEquipoTemp).isActivo() ) {
-                                    menorProcesamiento = entrada.getValue();
-                                    equipoAUsar = ipEquipoTemp;
-                                }
-                            }
-                            
-                            equipoADistribuir = equipoAUsar;                            
-                            
-                        }else{
-                            mensaje.setIpSender(equipoADistribuir);
-                        }
-                        
-                        if(equipoADistribuir != null){
-                            
-                            mensaje.setIpSender(equipoADistribuir);
-                            mensaje.setPais(paisAEnviar);
-                            mensaje.setInstrucccion(1);
-
-                            SenderBroker sender = new SenderBroker(equipoADistribuir, puerto);
-                            sender.enviarMensaje( mensaje );
-                            System.out.println("Enviado país "+paisAEnviar.getNombre()+" a "+equipoADistribuir);
-
-                            equipoADistribuir = null;
-                        
-                        }
-                        
-                        /*
-                        
-                        Pais paisAEnviar = null; 
-                        
-                        for (HashMap.Entry<String, Pais> entry : paisesPorDistribuir.entrySet()) {
-
-                            paisAEnviar = entry.getValue();
-                            
-                            Mensaje mensaje = new Mensaje();
-                            mensaje.setIpSender(ipServidor);
-                            mensaje.setPais(paisAEnviar);
-                            mensaje.setInstrucccion(1);
-
-                            String ipEquipo = null;
-                            Long menor = 0L;
-
-                            for (HashMap.Entry<String, Long> entrada : equipos.entrySet()) {
-                                String ip = entrada.getKey();
-                                Long procesamientoCPU = entrada.getValue();
-                                if ( procesamientoCPU < menor && notificacionesEquipos.get(ip).isActivo() ){
-                                    menor = procesamientoCPU;
-                                    ipEquipo = ip;
-                                }
-                            }
-                            
-                            if(ipEquipo != null){
-                                SenderBroker sender = new SenderBroker(ipEquipo, puerto);
-                                sender.enviarMensaje( mensaje );
-                                System.out.println("Enviado país "+paisAEnviar.getNombre()+" a "+ipEquipo);
-                            }
-                    
-                        }
-
-                        */
-
-                        sem.release();
-                    
+                    /*
+                    try {
+                        sem.acquire();
+                    } catch (InterruptedException ex) {
+                        System.out.println("Error al intentar activar semáforo");
+                        System.exit(1);
                     }
-                
+                    
+                    Equipo equipo;
+                    for (HashMap.Entry<String, Equipo> entry : notificacionesEquipos.entrySet()) {
+                        equipo = entry.getValue();
+                        if( equipo.isActivo()==true){
+                            //si al equipo se le envió una notificación y no la respondió
+                            //entonces distribuir los países que allí estaban
+                            if( equipo.isNotificacionReporteCargaEnviada()==true 
+                                    && equipo.isRespuestaEntregada()==false ){
+                                System.out.println("REPARTIENDO PAÍSES HUERFANOS");
+                            }
+                        }
+                    }
+                    
+                    sem.release();*/                
             }
           };
 
@@ -466,28 +364,27 @@ public class ServidorBroker {
         
         while (true){
             
-            Socket s = null;    
+            Socket socket = null;    
               
             try { 
                 
                 // socket object to receive incoming client requests 
-                s = ss.accept(); 
+                socket = ss.accept(); 
                 
                 // get the input stream from the connected socket
-                InputStream inputStream = s.getInputStream();
+                InputStream inputStream = socket.getInputStream();
                 // create a DataInputStream so we can read data from it.
                 ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
                   
-                System.out.println("Mensaje entrante proveniente de " + s);
+                System.out.println("Mensaje entrante proveniente de " + socket);
                 
                 Mensaje mensaje = (Mensaje)objectInputStream.readObject();
                 Pais pais = mensaje.getPais();
                 
                 String ipSender = null;
-                Long procesamientoCPU;
+                Long procesamientoEquipo;
+                int numeroPaisesProcesando;
                 Equipo equipo = null;
-                
-                Pair <Long, Long> pareja;
                 
                 switch(mensaje.getInstrucccion()) {
                     
@@ -498,30 +395,35 @@ public class ServidorBroker {
                         System.out.println("Recibiendo respuesta inicial de equipo");
                         
                         ipSender = mensaje.getIpSender();
-                        procesamientoCPU = mensaje.getProcesamientoCPU();
+                        procesamientoEquipo = mensaje.getProcesamientoEquipo();
                         paisesInicio = mensaje.getPaisesInicio();
+                        numeroPaisesProcesando = mensaje.getNumeroPaisesProcesando();
 
                         this.sem.acquire();
 
-                        //reemplazar por nuevo valor de uso de CPU
-                        equipos.replace(ipSender, procesamientoCPU);
+                        //reemplazar por nuevo valor de procesamiento
+                        this.cargaPorEquipo.replace(ipSender, procesamientoEquipo);
+                        this.paisesProcesandosePorEquipo.put(ipSender, numeroPaisesProcesando);
                         
-                        equipo = this.notificacionesEquipos.get(ipSender);
+                        equipo = this.estadosEquipos.get(ipSender);
+                        //se conoce que el equipo se encuentra activo, 
+                        //se actualiza dicho estado
                         equipo.setActivo(true);
-                        this.notificacionesEquipos.replace(ipSender, equipo);
+                        this.estadosEquipos.replace(ipSender, equipo);
                         
-                        pareja = new Pair<>(0L, 0L); 
-                        this.procesamientoEquipos.put(ipSender, pareja);
-                        
+                        //añadir a la lista de países del broker
+                        //los países del equipo que recién se comunica
                         this.paises.addAll(paisesInicio);
                         for(int i=0; i<paisesInicio.size(); i++){
                             if( this.paisesEnEquipos.get( paisesInicio.get(i).getNombre() )!=null ){
-                                System.out.println("Error: se ha duplicado un país en los equipos de procesamiento.");
+                                System.out.println("Error: se ha duplicado un país "
+                                        + "en los equipos de procesamiento.");
                                 System.exit(1);
                             }
                             this.paisesEnEquipos.put(paisesInicio.get(i).getNombre()
                                     , ipSender);
-                            System.out.println("Agregado a la lista del broker el país "+paisesInicio.get(i).getNombre());
+                            System.out.println("Agregado a la lista del broker "
+                                    + "el país "+paisesInicio.get(i).getNombre());
                         }
 
                         this.sem.release();                 
@@ -549,21 +451,31 @@ public class ServidorBroker {
                         System.out.println("Recibiendo información de procesamiento del equipo");
                         
                         ipSender = mensaje.getIpSender();
-                        procesamientoCPU = mensaje.getProcesamientoCPU();
+                        procesamientoEquipo = mensaje.getProcesamientoEquipo();
+                        numeroPaisesProcesando = mensaje.getNumeroPaisesProcesando();
+                        long[] cargaPaises = mensaje.getCargaPaisesPorEquipo();
 
                         this.sem.acquire();
 
-                        //reemplazar por nuevo valor de uso de CPU
-                        equipos.replace(ipSender, procesamientoCPU);
+                        //reemplazar por nuevo valor de uso de procesamiento
+                        this.cargaPorEquipo.replace(ipSender, procesamientoEquipo);
+                        this.paisesProcesandosePorEquipo.put(ipSender, numeroPaisesProcesando);
                         
-                        equipo = this.notificacionesEquipos.get(ipSender);
-                        equipo.setActivo(true);
-                        this.notificacionesEquipos.replace(ipSender, equipo);                        
+                        equipo = this.estadosEquipos.get(ipSender);
+                        //equipo.setActivo(true);
+                        //se conoce que el reporte fue enviado pero ya se retornó
+                        equipo.setNotificacionReporteCargaEnviada(false);
+                        this.estadosEquipos.replace(ipSender, equipo);  
                         
-                        pareja = new Pair <> (mensaje.getProcesamientoInferior(), mensaje.getProcesamientoSuperior()); 
-                        this.procesamientoEquipos.replace(ipSender, pareja);
+                        this.cargaPaisesPorEquipo.put(ipSender, cargaPaises);
 
                         this.sem.release();
+                        
+                        System.out.println("Equipo "+ipSender+" tiene carga total "
+                                + "de "+procesamientoEquipo+", procesando "
+                                +numeroPaisesProcesando+" países");
+                        
+                        System.out.println(Arrays.toString(cargaPaises));                   
                         
                         System.out.println("Actualizada información del equipo");
                         
@@ -590,11 +502,12 @@ public class ServidorBroker {
             } 
             catch (Exception e){ 
                 try { 
-                    s.close();
+                    socket.close();
                 } catch (IOException ex) {
-                    Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
+                    System.out.println("Problema al cerrar socket");
+                    System.exit(1);
                 }
-                e.printStackTrace(); 
+                //e.printStackTrace(); 
             } 
         } 
         

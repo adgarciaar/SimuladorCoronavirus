@@ -62,7 +62,7 @@ public class EjecutorPropagacion extends Thread {
             
             try {
                 Thread.sleep(3000);            
-                this.pais.setPoblacion(this.pais.getPoblacion()+10);
+                //this.pais.setPoblacion(this.pais.getPoblacion()+10);
                 System.out.println("Incrementando poblacion de "+this.pais.getNombre()+" a "+this.pais.getPoblacion());
             } catch (InterruptedException ex) {
                 Logger.getLogger(EjecutorPropagacion.class.getName()).log(Level.SEVERE, null, ex);

@@ -31,18 +31,13 @@ public class Mensaje implements Serializable {
     private String ipSender; //ip de la máquina que envía el mensaje
     
     //procesamiento total de la máquina (en caso de que sea equipo de procesamiento)
-    private Long procesamientoCPU; 
-    
-    //procesamiento del agente con menor procesamiento (en caso de que sea equipo de procesamiento)
-    private Long procesamientoInferior;
-    //procesamiento del agente con mayor procesamiento (en caso de que sea equipo de procesamiento)
-    private Long procesamientoSuperior;
-    
-    //variable para indicar a un equipo qué país retornar al broker, 
-    //cuando se va a iniciar el balanceo de cargas
-    private int instruccionPais; 
+    private Long procesamientoEquipo; 
     
     private List<Pais> paisesInicio;
+    
+    private int numeroPaisesProcesando;
+    
+    private long[] cargaPaisesPorEquipo;
 
     public Mensaje() {
     }
@@ -71,36 +66,12 @@ public class Mensaje implements Serializable {
         this.ipSender = ipSender;
     }
 
-    public Long getProcesamientoCPU() {
-        return procesamientoCPU;
+    public Long getProcesamientoEquipo() {
+        return procesamientoEquipo;
     }
 
-    public void setProcesamientoCPU(Long procesamientoCPU) {
-        this.procesamientoCPU = procesamientoCPU;
-    }
-
-    public Long getProcesamientoInferior() {
-        return procesamientoInferior;
-    }
-
-    public void setProcesamientoInferior(Long procesamientoInferior) {
-        this.procesamientoInferior = procesamientoInferior;
-    }
-
-    public Long getProcesamientoSuperior() {
-        return procesamientoSuperior;
-    }
-
-    public void setProcesamientoSuperior(Long procesamientoSuperior) {
-        this.procesamientoSuperior = procesamientoSuperior;
-    }
-
-    public int getInstruccionPais() {
-        return instruccionPais;
-    }
-
-    public void setInstruccionPais(int instruccionPais) {
-        this.instruccionPais = instruccionPais;
+    public void setProcesamientoEquipo(Long procesamientoEquipo) {
+        this.procesamientoEquipo = procesamientoEquipo;
     }
 
     public List<Pais> getPaisesInicio() {
@@ -109,6 +80,22 @@ public class Mensaje implements Serializable {
 
     public void setPaisesInicio(List<Pais> paisesInicio) {
         this.paisesInicio = paisesInicio;
+    }
+
+    public int getNumeroPaisesProcesando() {
+        return numeroPaisesProcesando;
+    }
+
+    public void setNumeroPaisesProcesando(int numeroPaisesProcesando) {
+        this.numeroPaisesProcesando = numeroPaisesProcesando;
+    }
+
+    public long[] getCargaPaisesPorEquipo() {
+        return cargaPaisesPorEquipo;
+    }
+
+    public void setCargaPaisesPorEquipo(long[] cargaPaisesPorEquipo) {
+        this.cargaPaisesPorEquipo = cargaPaisesPorEquipo;
     }
     
 }
