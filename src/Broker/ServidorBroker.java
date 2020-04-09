@@ -57,11 +57,11 @@ public class ServidorBroker {
     
     //mapa que guarda duplas <Nombre de un país, Datos de ese país>
     //para realizar el balanceo de cargas
-    private volatile HashMap<String, Pais> paisesPorDistribuir;
-    //private volatile HashMap<String, String> equiposADistribuir;
+    private volatile HashMap<String, Pais> paisesPorDistribuir;    
     
-    //variable que guarda la IP del equipo al que se va a enviar el próximo agente
-    private volatile String equipoADistribuir;
+    //mapa que guarda duplas <Población de un país, IP del equipo al que se va a enviar>
+    //para realizar el balanceo de cargas
+    private volatile HashMap<Long, String> paisesADistribuirEnEquipos;    
     
     //semáforo para garantizar que las funciones acceden sólo una a la vez
     //a las variables de esta clase, garantizando consistencia
@@ -76,8 +76,8 @@ public class ServidorBroker {
         this.estadosEquipos = new HashMap<>();
         this.paisesEnEquipos = new HashMap<>();
         this.paisesProcesandosePorEquipo = new HashMap();
-        this.cargaPaisesPorEquipo = new HashMap();
-        this.equipoADistribuir = null;
+        this.cargaPaisesPorEquipo = new HashMap();        
+        this.paisesADistribuirEnEquipos = new HashMap();
         
         String ipEquipo;
         //para cada equipo que el broker conoce se inicializan unas variables
@@ -213,6 +213,27 @@ public class ServidorBroker {
         
     }
     
+    //calcula la desviación estándar poblacional para una lista con la carga de los equipos
+    public double calcularDesvEstandarNuevaDistribucion( List<Long> cargasEnEquipos ){
+        
+        long promedio, suma = 0;
+        for(int i=0; i<cargasEnEquipos.size(); i++){
+            suma = suma + cargasEnEquipos.get(i);
+        }
+        promedio = suma/cargasEnEquipos.size();
+        
+        double sumatoria = 0;
+        for(int i=0; i<cargasEnEquipos.size(); i++){
+            sumatoria = sumatoria + Math.pow( cargasEnEquipos.get(i) - promedio , 2);
+        }
+        
+        double division = sumatoria/cargasEnEquipos.size();
+        
+        double desvEstandar = Math.sqrt(division);
+        
+        return desvEstandar;
+    }
+    
     //función que envía mensajes a los equipos a los cuales se les solicita
     //enviar un agente al broker, para realizar el balanceo de cargas
     //esta función se ejecuta periódicamente
@@ -222,13 +243,7 @@ public class ServidorBroker {
 
             @Override
             public void run() {              
-                
-                String equipoConMayorProcesamiento = null;
-                String equipoConMenorProcesamiento = null;
-                Long menorProcesamiento = Long.MAX_VALUE;
-                Long mayorProcesamiento = Long.MIN_VALUE;
-                Equipo equipo;
-                
+                               
                 try {
                     sem.acquire();
                 } catch (InterruptedException ex) {
@@ -237,7 +252,10 @@ public class ServidorBroker {
                 }
                 
                 //verificar si la carga de los equipos es igual o diferente
-                List<Long> valoresCargaEquipos = (List<Long>)cargaPorEquipo.values();
+                List<Long> valoresCargaEquipos = new ArrayList<>();
+                for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {
+                    valoresCargaEquipos.add( entry.getValue() );
+                }                        
                 Long procesamientoIgual = valoresCargaEquipos.get(0);
                 boolean todosTienenMismaCarga = true;
                 for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {
@@ -249,6 +267,12 @@ public class ServidorBroker {
                 
                 //si todos tienen diferente carga entonces hay que balancear
                 if( todosTienenMismaCarga == false ){
+                    
+                    String equipoConMayorProcesamiento = null;
+                    String equipoConMenorProcesamiento = null;
+                    Long menorProcesamiento = Long.MAX_VALUE;
+                    Long mayorProcesamiento = Long.MIN_VALUE;
+                    Equipo equipo;
                 
                     //conocer el equipo que tiene mayor y menor carga de procesamiento
                     for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {
@@ -261,7 +285,8 @@ public class ServidorBroker {
                                 menorProcesamiento = entry.getValue();
                                 equipoConMenorProcesamiento = entry.getKey();
                             }
-                            if( entry.getValue() > mayorProcesamiento ){
+                            if( entry.getValue() > mayorProcesamiento 
+                                    && paisesProcesandosePorEquipo.get(entry.getKey())>1 ){
                                 mayorProcesamiento = entry.getValue();
                                 equipoConMayorProcesamiento = entry.getKey();
                             }
@@ -269,12 +294,86 @@ public class ServidorBroker {
                         }                    
                     }
                     
-                    //tomar el agente con menor procesamiento
-                    //del equipo con mayor procesamiento
-                    //(cuando ese equipo ejecuta más de 1 agente)
-                    //y darselo al equipo con menos procesamiento
-                    //pero antes revisar si se disminuye la desviación estándar
-                
+                    if( equipoConMayorProcesamiento.equals(equipoConMenorProcesamiento) ){
+                        
+                        System.out.println("No se puede balancear más en este momento");
+                        
+                    }else{
+                        
+                        System.out.println("Equipo con mayor procesamiento es "+equipoConMayorProcesamiento);
+                        System.out.println("Equipo con menor procesamiento es "+equipoConMenorProcesamiento);
+
+                        //tomar el agente con menor procesamiento
+                        //del equipo con mayor procesamiento
+                        //(cuando ese equipo ejecuta más de 1 agente)
+                        //y darselo al equipo con menos procesamiento
+                        //pero antes revisar si se disminuye la desviación estándar
+                        //de la carga de todos los equipos (más balanceado)
+
+                        long cargaAgenteATransferir;
+
+                        long[] cargasMayor = cargaPaisesPorEquipo.get(equipoConMayorProcesamiento);
+
+                        //la nueva carga del mayor sería la misma restando el agente que se va a transferir
+                        long nuevaCargaMayor = mayorProcesamiento - cargasMayor[0];
+                        //la nueva carga del menor sería la misma sumando el agente que se va a transferir
+                        long nuevaCargaMenor = menorProcesamiento + cargasMayor[0];
+
+                        List<Long> anteriorDistribucionCargas = new ArrayList<>();                    
+                        for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {                        
+                            anteriorDistribucionCargas.add(entry.getValue());                       
+                        }
+
+                        List<Long> nuevaDistribucionCargas = new ArrayList<>();
+                        nuevaDistribucionCargas.add(nuevaCargaMayor);
+                        nuevaDistribucionCargas.add(nuevaCargaMenor);
+
+                        for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {
+                            if( !entry.getKey().equals(equipoConMayorProcesamiento) &&
+                                    !entry.getKey().equals(equipoConMenorProcesamiento) ){
+                                nuevaDistribucionCargas.add(entry.getValue());
+                            }
+                        }
+
+                        double desvEstandarAnterior;
+                        double desvEstandarNueva;
+
+                        desvEstandarAnterior = calcularDesvEstandarNuevaDistribucion(anteriorDistribucionCargas);                    
+                        desvEstandarNueva = calcularDesvEstandarNuevaDistribucion(nuevaDistribucionCargas);
+
+                        //si la nueva desv. estándar es menor, entonces hacer el intercambio
+                        if(desvEstandarNueva < desvEstandarAnterior){
+
+                            //usar mapa para saber a dónde distribuir ese país
+
+                            System.out.println("Se va a transferir un país con población "+cargasMayor[0]);
+
+                            paisesADistribuirEnEquipos.put(cargasMayor[0], equipoConMenorProcesamiento);
+
+                            //enviar mensaje para pedir el agente a trasladar
+
+                            String ipEquipo = equipoConMayorProcesamiento;
+
+                            Mensaje mensaje = new Mensaje();
+                            mensaje.setIpSender(ipServidor);
+                            mensaje.setPais(null);
+                            mensaje.setInstrucccion(7);
+                            mensaje.setPaisesInicio(null);
+
+                            SenderBroker sender = new SenderBroker(ipEquipo, puerto);
+                            sender.enviarMensaje( mensaje );      
+                            System.out.println("Enviado mensaje a "+ipEquipo+" "
+                                    + ", solicitando país para traslado con población "+
+                                    cargasMayor[0]+" que se va a mover a "+equipoConMenorProcesamiento);
+
+                            //actualizar estado
+
+                            //paisesEnEquipos.put(pais, ipEquipo);
+
+                        }
+                    
+                    }
+                    
                 }
                 
                 sem.release();
@@ -288,7 +387,7 @@ public class ServidorBroker {
         //tiempo (ms) que dura para ejecutarse cada vez
         int tiempoPeriodicoEjecucion = 30000;
         //tiempo (ms) que dura para ejecutarse la primera vez
-        int tiempoInicialEspera = 60000;
+        int tiempoInicialEspera = 45000;
         
         //la tarea se ejecuta cada t segundos
         timer.schedule(task, tiempoInicialEspera, tiempoPeriodicoEjecucion);
@@ -297,7 +396,7 @@ public class ServidorBroker {
     //función que se encarga de enviar agentes a equipos para que estos sean
     //procesados, consiguiendo balancear las cargas
     //esta función se ejecuta periódicamente
-    public void realizarDistribucion(){
+    public void distribuirPaisesEquipoCaido(){
         
         TimerTask task = new TimerTask() {
 
@@ -438,11 +537,25 @@ public class ServidorBroker {
                       
                         this.sem.acquire();
                         
-                        paisesPorDistribuir.put(pais.getNombre(), pais);
+                        this.paisesPorDistribuir.put(pais.getNombre(), pais);
+                        
+                        String ipEquipoARepartir = this.paisesADistribuirEnEquipos.get(pais.getPoblacion());                        
+                        
+                        //enviarlo al nuevo equipo donde se va a procesar
+                        
+                        Mensaje nuevoMensaje = new Mensaje();
+                        nuevoMensaje.setIpSender(this.ipServidor);
+                        nuevoMensaje.setPais(pais);
+                        nuevoMensaje.setInstrucccion(1);
+
+                        SenderBroker sender = new SenderBroker(ipEquipoARepartir, this.puerto);
+                        sender.enviarMensaje( nuevoMensaje );      
+                        System.out.println("Enviado país "+ pais.getNombre() 
+                                +" a "+ipEquipoARepartir+" con población "+pais.getPoblacion());
 
                         this.sem.release();
 
-                        System.out.println("Recibido el país "+pais.getNombre()+" con "+pais.getPoblacion()+" habitantes");
+                        //System.out.println("Recibido el país "+pais.getNombre()+" con "+pais.getPoblacion()+" habitantes");
                         
                       break;
                       
@@ -492,6 +605,7 @@ public class ServidorBroker {
                         //eliminar país que se está ejecutando de la lista de
                         //países que se van a distribuir
                         this.paisesPorDistribuir.remove(paisRecibido);
+                        this.paisesADistribuirEnEquipos.remove(pais.getPoblacion());
                         
                         this.sem.release();
                         

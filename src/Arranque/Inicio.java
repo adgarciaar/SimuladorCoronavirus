@@ -79,7 +79,7 @@ public class Inicio {
             servidorBroker.iniciarEscuchaServidor();
             servidorBroker.establecerComunicacionInicialConEquipos();
             servidorBroker.solicitarCargaEquipos();    
-            //servidorBroker.solicitarPaisesParaDistribuir();
+            servidorBroker.definirDistribucion();
             //servidorBroker.realizarDistribucion();
             
         //si no es un broker

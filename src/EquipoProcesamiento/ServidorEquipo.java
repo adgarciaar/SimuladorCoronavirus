@@ -73,11 +73,11 @@ public class ServidorEquipo {
         System.out.println("Iniciando procesamiento de países precargados en este equipo"); 
         
         try {
-                // acquiring the lock
-                this.sem.acquire();
-            } catch (InterruptedException ex) {
-                Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            // acquiring the lock
+            this.sem.acquire();
+        } catch (InterruptedException ex) {
+            Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
+        }
         
         for (Pais pais : this.paises) {
 
@@ -320,6 +320,7 @@ public class ServidorEquipo {
                         //Se va a enviar el país con menor población
                         
                         System.out.println("Recibiendo solicitud para enviar país");
+                        ipSender = mensaje.getIpSender();
                         
                         this.sem.acquire();
                         
@@ -328,11 +329,12 @@ public class ServidorEquipo {
                         
                         long menorPoblacion = Long.MAX_VALUE;
                         
-                        int i = 0;
+                        int i = 0, j = 0;
                         for (Pais paisRevision : paises) {
                             if( paisRevision.getPoblacion() < menorPoblacion ){
                                 menorPoblacion = paisRevision.getPoblacion();
                                 paisSaliente =  paisRevision;
+                                j = i;
                             }
                             i = i + 1;
                         }                        
@@ -341,23 +343,24 @@ public class ServidorEquipo {
                         ejecutor = hilos.get( paisSaliente.getNombre() );
                         ejecutor.doStop();
                         //quitar el país de la lista de países
-                        this.paises.remove(i);
+                        this.paises.remove(j);
+                        hilos.remove(paisSaliente.getNombre());
+                        
+                        System.out.println("Detenida la ejecución del país "
+                                +paisSaliente.getNombre()+", y removido de este equipo");
                         
                         nuevoMensaje = new Mensaje();
                         nuevoMensaje.setPais(paisSaliente);
-                        
+                        nuevoMensaje.setIpSender(this.ipServidor);
                         nuevoMensaje.setInstrucccion(2);
 
                         sender = new SenderEquipo(ipSender, this.puerto);
                         sender.enviarMensaje( nuevoMensaje );   
                         System.out.println("Enviado país "+nuevoMensaje.getPais().getNombre()+" al broker");
                         
-                        hilos.remove(paisSaliente.getNombre());
-                        
                         this.sem.release();
                         
-                        break;
-                        
+                        break;                        
                 }
                 
             } 
