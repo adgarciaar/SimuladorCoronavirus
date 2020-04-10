@@ -234,6 +234,37 @@ public class ServidorBroker {
         return desvEstandar;
     }
     
+    public static void quickSort(long[] arr, int start, int end){
+ 
+        int partition = partition(arr, start, end);
+ 
+        if(partition-1>start) {
+            quickSort(arr, start, partition - 1);
+        }
+        if(partition+1<end) {
+            quickSort(arr, partition + 1, end);
+        }
+    }
+ 
+    public static int partition(long[] arr, int start, int end){
+        int pivot = (int) arr[end];
+ 
+        for(int i=start; i<end; i++){
+            if(arr[i]<pivot){
+                int temp= (int) arr[start];
+                arr[start]=arr[i];
+                arr[i]=temp;
+                start++;
+            }
+        }
+ 
+        int temp = (int) arr[start];
+        arr[start] = pivot;
+        arr[end] = temp;
+ 
+        return start;
+    }
+    
     //función que envía mensajes a los equipos a los cuales se les solicita
     //enviar un agente al broker, para realizar el balanceo de cargas
     //esta función se ejecuta periódicamente
@@ -273,105 +304,165 @@ public class ServidorBroker {
                     Long menorProcesamiento = Long.MAX_VALUE;
                     Long mayorProcesamiento = Long.MIN_VALUE;
                     Equipo equipo;
-                
-                    //conocer el equipo que tiene mayor y menor carga de procesamiento
-                    for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {
-
-                        equipo = estadosEquipos.get(entry.getKey());                   
-
-                        if( equipo.isActivo() == true ){
-
-                            if( entry.getValue() < menorProcesamiento ){
-                                menorProcesamiento = entry.getValue();
-                                equipoConMenorProcesamiento = entry.getKey();
-                            }
-                            if( entry.getValue() > mayorProcesamiento 
-                                    && paisesProcesandosePorEquipo.get(entry.getKey())>1 ){
-                                mayorProcesamiento = entry.getValue();
-                                equipoConMayorProcesamiento = entry.getKey();
-                            }
-
-                        }                    
-                    }
                     
-                    if( equipoConMayorProcesamiento.equals(equipoConMenorProcesamiento) ){
+                    boolean continuarDistribucion = true;                    
+                    
+                    List<String> equiposMayoresUsados = new ArrayList<>();                   
+                    
+                    while(continuarDistribucion){
                         
-                        System.out.println("No se puede balancear más en este momento");
+                        //conocer el equipo que tiene mayor y menor carga de procesamiento
                         
-                    }else{
+                        equipoConMayorProcesamiento = null;
+                        equipoConMenorProcesamiento = null;
+                        menorProcesamiento = Long.MAX_VALUE;
+                        mayorProcesamiento = Long.MIN_VALUE;
                         
-                        System.out.println("Equipo con mayor procesamiento es "+equipoConMayorProcesamiento);
-                        System.out.println("Equipo con menor procesamiento es "+equipoConMenorProcesamiento);
-
-                        //tomar el agente con menor procesamiento
-                        //del equipo con mayor procesamiento
-                        //(cuando ese equipo ejecuta más de 1 agente)
-                        //y darselo al equipo con menos procesamiento
-                        //pero antes revisar si se disminuye la desviación estándar
-                        //de la carga de todos los equipos (más balanceado)
-
-                        long cargaAgenteATransferir;
-
-                        long[] cargasMayor = cargaPaisesPorEquipo.get(equipoConMayorProcesamiento);
-
-                        //la nueva carga del mayor sería la misma restando el agente que se va a transferir
-                        long nuevaCargaMayor = mayorProcesamiento - cargasMayor[0];
-                        //la nueva carga del menor sería la misma sumando el agente que se va a transferir
-                        long nuevaCargaMenor = menorProcesamiento + cargasMayor[0];
-
-                        List<Long> anteriorDistribucionCargas = new ArrayList<>();                    
-                        for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {                        
-                            anteriorDistribucionCargas.add(entry.getValue());                       
-                        }
-
-                        List<Long> nuevaDistribucionCargas = new ArrayList<>();
-                        nuevaDistribucionCargas.add(nuevaCargaMayor);
-                        nuevaDistribucionCargas.add(nuevaCargaMenor);
-
                         for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {
-                            if( !entry.getKey().equals(equipoConMayorProcesamiento) &&
-                                    !entry.getKey().equals(equipoConMenorProcesamiento) ){
-                                nuevaDistribucionCargas.add(entry.getValue());
+
+                            equipo = estadosEquipos.get(entry.getKey());                   
+
+                            if( equipo.isActivo() == true ){
+
+                                if( entry.getValue() < menorProcesamiento ){
+                                    menorProcesamiento = entry.getValue();
+                                    equipoConMenorProcesamiento = entry.getKey();
+                                }
+                                if( entry.getValue() > mayorProcesamiento 
+                                        && paisesProcesandosePorEquipo.get(entry.getKey())>1 ){
+                                                                   
+                                        if( !equiposMayoresUsados.contains(entry.getKey() ) ){
+                                            mayorProcesamiento = entry.getValue();
+                                            equipoConMayorProcesamiento = entry.getKey();
+                                        }          
+                                }
+
+                            }                         
+                        }
+
+                        if( equipoConMayorProcesamiento == null
+                                || equipoConMayorProcesamiento.equals(equipoConMenorProcesamiento) ){
+
+                            System.out.println("No se puede balancear más en este momento");
+                            break;
+
+                        }else{
+
+                            System.out.println("Equipo con mayor procesamiento es "+equipoConMayorProcesamiento);
+                            System.out.println("Equipo con menor procesamiento es "+equipoConMenorProcesamiento);
+
+                            //tomar el agente con menor procesamiento
+                            //del equipo con mayor procesamiento
+                            //(cuando ese equipo ejecuta más de 1 agente)
+                            //y darselo al equipo con menos procesamiento
+                            //pero antes revisar si se disminuye la desviación estándar
+                            //de la carga de todos los equipos (más balanceado)
+
+                            long[] cargasMayor = cargaPaisesPorEquipo.get(equipoConMayorProcesamiento);
+                            
+                            long cargaAgenteATransferir = cargasMayor[0];
+
+                            //la nueva carga del mayor sería la misma restando el agente que se va a transferir
+                            long nuevaCargaMayor = mayorProcesamiento - cargaAgenteATransferir;
+                            //la nueva carga del menor sería la misma sumando el agente que se va a transferir
+                            long nuevaCargaMenor = menorProcesamiento + cargaAgenteATransferir;
+
+                            List<Long> anteriorDistribucionCargas = new ArrayList<>();                    
+                            for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {                        
+                                anteriorDistribucionCargas.add(entry.getValue());                       
                             }
+
+                            List<Long> nuevaDistribucionCargas = new ArrayList<>();
+                            nuevaDistribucionCargas.add(nuevaCargaMayor);
+                            nuevaDistribucionCargas.add(nuevaCargaMenor);
+
+                            for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {
+                                if( !entry.getKey().equals(equipoConMayorProcesamiento) &&
+                                        !entry.getKey().equals(equipoConMenorProcesamiento) ){
+                                    nuevaDistribucionCargas.add(entry.getValue());
+                                }
+                            }
+
+                            double desvEstandarAnterior;
+                            double desvEstandarNueva;
+
+                            desvEstandarAnterior = calcularDesvEstandarNuevaDistribucion(anteriorDistribucionCargas);                    
+                            desvEstandarNueva = calcularDesvEstandarNuevaDistribucion(nuevaDistribucionCargas);
+
+                            //si la nueva desv. estándar es menor, entonces hacer el intercambio
+                            if(desvEstandarNueva < desvEstandarAnterior){
+
+                                //usar mapa para saber a dónde distribuir ese país
+
+                                System.out.println("Se va a transferir un país con población "+cargasMayor[0]);
+
+                                paisesADistribuirEnEquipos.put(cargasMayor[0], equipoConMenorProcesamiento);
+
+                                //enviar mensaje para pedir el agente a trasladar
+
+                                String ipEquipo = equipoConMayorProcesamiento;
+
+                                Mensaje mensaje = new Mensaje();
+                                mensaje.setIpSender(ipServidor);
+                                mensaje.setPais(null);
+                                mensaje.setInstrucccion(7);
+                                mensaje.setPaisesInicio(null);
+
+                                SenderBroker sender = new SenderBroker(ipEquipo, puerto);
+                                sender.enviarMensaje( mensaje );      
+                                System.out.println("Enviado mensaje a "+ipEquipo+" "
+                                        + ", solicitando país para traslado con población "+
+                                        cargasMayor[0]+" que se va a mover a "+equipoConMenorProcesamiento);
+                                
+                                cargaPaisesPorEquipo.replace(ipEquipo, cargasMayor);
+
+                                //actualizar estado de las cargas para continuar el ciclo
+                                
+                                long[] cargasAntiguasMayor = cargaPaisesPorEquipo.get(equipoConMayorProcesamiento);
+                                long[] cargasAntiguasMenor = cargaPaisesPorEquipo.get(equipoConMenorProcesamiento);
+                                
+                                //actualizar cargas del mayor
+                                //se le quitó el proceso con menor carga (el primero)
+                                
+                                long[] cargasNuevasMayor = new long[ cargasAntiguasMayor.length-1 ];
+                                
+                                int j = 0;
+                                for(int k=1; k<cargasAntiguasMayor.length; k++){
+                                    cargasNuevasMayor[j] = cargasAntiguasMayor[k];
+                                    j = j + 1;
+                                }
+                                
+                                //actualizar cargas del mayor
+                                //se le adiciona un nuevo agente
+                                //hay que ordenar porque a priori no sé sabe su posición en el arreglo
+                                
+                                long[] cargasNuevasMenor = new long[ cargasAntiguasMenor.length+1 ]; ;
+                                
+                                for(int m=0; m<cargasAntiguasMayor.length; m++){
+                                    cargasNuevasMenor[m] = cargasAntiguasMenor[m];                                    
+                                }                                
+                                cargasNuevasMenor[ cargasAntiguasMenor.length ] = cargaAgenteATransferir;
+                                //ordenarlo
+                                //ordenar de menor a mayor la carga de los países
+                                quickSort(cargasNuevasMenor, 0, cargasNuevasMenor.length-1);
+                                
+                                cargaPaisesPorEquipo.replace(equipoConMayorProcesamiento, cargasNuevasMayor);
+                                cargaPaisesPorEquipo.replace(equipoConMenorProcesamiento, cargasNuevasMenor);
+                                
+                                cargaPorEquipo.replace(equipoConMayorProcesamiento, nuevaCargaMayor);
+                                cargaPorEquipo.replace(equipoConMenorProcesamiento, nuevaCargaMenor);
+                                
+                                int procesadosPorMayorAntes = paisesProcesandosePorEquipo.get(equipoConMayorProcesamiento);
+                                int procesadosPorMenorAntes = paisesProcesandosePorEquipo.get(equipoConMenorProcesamiento);
+                                paisesProcesandosePorEquipo.replace(equipoConMayorProcesamiento, procesadosPorMayorAntes-1);
+                                paisesProcesandosePorEquipo.replace(equipoConMenorProcesamiento, procesadosPorMenorAntes+1);
+
+                            }else{
+                                equiposMayoresUsados.add(equipoConMayorProcesamiento);
+                            }
+
                         }
-
-                        double desvEstandarAnterior;
-                        double desvEstandarNueva;
-
-                        desvEstandarAnterior = calcularDesvEstandarNuevaDistribucion(anteriorDistribucionCargas);                    
-                        desvEstandarNueva = calcularDesvEstandarNuevaDistribucion(nuevaDistribucionCargas);
-
-                        //si la nueva desv. estándar es menor, entonces hacer el intercambio
-                        if(desvEstandarNueva < desvEstandarAnterior){
-
-                            //usar mapa para saber a dónde distribuir ese país
-
-                            System.out.println("Se va a transferir un país con población "+cargasMayor[0]);
-
-                            paisesADistribuirEnEquipos.put(cargasMayor[0], equipoConMenorProcesamiento);
-
-                            //enviar mensaje para pedir el agente a trasladar
-
-                            String ipEquipo = equipoConMayorProcesamiento;
-
-                            Mensaje mensaje = new Mensaje();
-                            mensaje.setIpSender(ipServidor);
-                            mensaje.setPais(null);
-                            mensaje.setInstrucccion(7);
-                            mensaje.setPaisesInicio(null);
-
-                            SenderBroker sender = new SenderBroker(ipEquipo, puerto);
-                            sender.enviarMensaje( mensaje );      
-                            System.out.println("Enviado mensaje a "+ipEquipo+" "
-                                    + ", solicitando país para traslado con población "+
-                                    cargasMayor[0]+" que se va a mover a "+equipoConMenorProcesamiento);
-
-                            //actualizar estado
-
-                            //paisesEnEquipos.put(pais, ipEquipo);
-
-                        }
-                    
+                        
                     }
                     
                 }
@@ -552,6 +643,10 @@ public class ServidorBroker {
                         sender.enviarMensaje( nuevoMensaje );      
                         System.out.println("Enviado país "+ pais.getNombre() 
                                 +" a "+ipEquipoARepartir+" con población "+pais.getPoblacion());
+                        
+                        //actualizar estado
+
+                        this.paisesEnEquipos.put(pais.getNombre(), ipEquipoARepartir);
 
                         this.sem.release();
 
