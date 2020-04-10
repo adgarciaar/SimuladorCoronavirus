@@ -38,7 +38,8 @@ public class SenderEquipo{
         try {
             socket = new Socket(this.ip, this.puerto);
         } catch (IOException ex) {
-            Logger.getLogger(SenderEquipo.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Error al abrir socket");
+            System.exit(1);
         }
         System.out.println("Socket creado para conectarse con "+this.ip+" por "
                 + "medio del puerto "+this.puerto);
@@ -48,28 +49,32 @@ public class SenderEquipo{
         try {
             outputStream = socket.getOutputStream();
         } catch (IOException ex) {
-            Logger.getLogger(SenderEquipo.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Error abriendo stream para envío");
+            System.exit(1);
         }
         // create an object output stream from the output stream so we can send an object through it
         ObjectOutputStream objectOutputStream = null;
         try {
             objectOutputStream = new ObjectOutputStream(outputStream);
         } catch (IOException ex) {
-            Logger.getLogger(SenderEquipo.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Error abriendo stream para envío");
+            System.exit(1);
         }   
 
         System.out.println("Enviando mensaje al equipo");
         try {
             objectOutputStream.writeObject(mensaje); //enviar objeto
         } catch (IOException ex) {
-            Logger.getLogger(SenderEquipo.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Error enviando objeto por socket");
+            System.exit(1);
         }
 
         System.out.println("Cerrando socket");
         try {        
             socket.close();
         } catch (IOException ex) {
-            Logger.getLogger(SenderEquipo.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Error cerrando socket");
+            System.exit(1);
         }
         
     }

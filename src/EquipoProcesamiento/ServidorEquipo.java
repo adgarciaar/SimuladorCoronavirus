@@ -126,6 +126,7 @@ public class ServidorEquipo {
         return start;
     }
     
+    /*
     //esta función se PUEDE encargar de actualizar el estado de cada país    
     public void activarMonitor(){
         
@@ -141,13 +142,13 @@ public class ServidorEquipo {
                         Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
                     }
                         for (int i = 0; i < hilos.size(); i++) {
-                            /*EjecutorPropagacion f = hilos.get(i);
+                            EjecutorPropagacion f = hilos.get(i);
                             f.pausar();
                             //f.doStop();
                             Pais pisito = f.getPais();
                             paises.set(0, pisito);
                             //System.out.println(paises.get(0).getPoblacion());
-                            System.out.println(paises.get(0).getNombre());*/
+                            System.out.println(paises.get(0).getNombre());
                         }
                         //System.out.println("Mirador Releases the permit.");
                         sem.release();
@@ -157,7 +158,7 @@ public class ServidorEquipo {
 
         thread.start();
         
-    }
+    }*/
     
     //esta función se encarga de estar pendiente de todas las comunicaciones
     //entrantes al equipo, en un ciclo infinito, que siempre está activo
@@ -173,7 +174,8 @@ public class ServidorEquipo {
         try {
             serverSocket = new ServerSocket(puerto);
         } catch (IOException ex) {
-            Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Error al abrir socket");
+            System.exit(1);
         }
         
         System.out.println("Iniciada escucha de mensajes entrantes");        
@@ -247,7 +249,7 @@ public class ServidorEquipo {
                         System.out.println("Recibiendo mensaje inicial del broker");
                         
                         this.ejecutarModeloPaisesPrecargados();
-                        this.activarMonitor();
+                        //this.activarMonitor();
                          
                         ipSender = mensaje.getIpSender();
                         
@@ -360,7 +362,22 @@ public class ServidorEquipo {
                         
                         this.sem.release();
                         
-                        break;                        
+                        break;
+
+                    case 8: //ejecución finaliza sin error
+                        
+                        System.out.println("La ejecución ha finalizado");
+                        System.exit(0);
+                        
+                        break;
+                        
+                    case 9: //ejecución finaliza con error
+                        
+                        System.out.println("La ejecución ha finalizado con un error");
+                        System.out.println("Error: "+mensaje.getTexto());
+                        System.exit(1);
+                        
+                        break; 
                 }
                 
             } 

@@ -5,6 +5,8 @@
  */
 package Entidades;
 
+import java.util.Date;
+
 /**
  *
  * @author adgar
@@ -16,6 +18,8 @@ public class Equipo {
     private boolean activo;
     private boolean notificacionReporteCargaEnviada;
     private boolean respuestaEntregada;
+    private Date horaUltimaNotificacionEnviada;
+    private boolean comunicacionInicialExitosa;
 
     public Equipo() {
     }    
@@ -42,6 +46,22 @@ public class Equipo {
 
     public void setRespuestaEntregada(boolean respuestaEntregada) {
         this.respuestaEntregada = respuestaEntregada;
+    }
+
+    public Date getHoraUltimaNotificacionEnviada() {
+        return horaUltimaNotificacionEnviada;
+    }
+
+    public void setHoraUltimaNotificacionEnviada(Date horaUltimaNotificacionEnviada) {
+        this.horaUltimaNotificacionEnviada = horaUltimaNotificacionEnviada;
+    }
+
+    public boolean isComunicacionInicialExitosa() {
+        return comunicacionInicialExitosa;
+    }
+
+    public void setComunicacionInicialExitosa(boolean comunicacionInicialExitosa) {
+        this.comunicacionInicialExitosa = comunicacionInicialExitosa;
     }
     
 }

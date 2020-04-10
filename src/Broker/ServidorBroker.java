@@ -21,11 +21,10 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import EquipoProcesamiento.ServidorEquipo;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
-import javafx.util.Pair;
 
 /**
  *
@@ -67,9 +66,23 @@ public class ServidorBroker {
     //a las variables de esta clase, garantizando consistencia
     private Semaphore sem;     
     
+    //variable booleana para saber si antes de la primera iteración
+    //la totalidad de los equipos no pudieron establecer comunicación inicial
+    private boolean primeraIteracion;
+    
     //constructor de la clase, se le pasan el puerto por el que se va a comunicar
     //y un mapa con los equipos precargados con los que se va a comunicar
     public ServidorBroker(int puerto, List<String> equipos) {
+        
+        //se consigue la ip de la máquina en que se está ejecutando esta función
+        InetAddress inetAddress = null;
+        try {
+            inetAddress = InetAddress.getLocalHost();
+        } catch (UnknownHostException ex) {
+            System.out.println("Error al conseguir la dirección IP de la máquina actual");
+            System.exit(1);
+        }        
+        this.ipServidor = inetAddress.getHostAddress();
         
         this.puerto = puerto;
         this.cargaPorEquipo = new HashMap<>();
@@ -78,19 +91,25 @@ public class ServidorBroker {
         this.paisesProcesandosePorEquipo = new HashMap();
         this.cargaPaisesPorEquipo = new HashMap();        
         this.paisesADistribuirEnEquipos = new HashMap();
+        this.primeraIteracion = true;
         
         String ipEquipo;
         //para cada equipo que el broker conoce se inicializan unas variables
         //para conocer su estado
-        for(int i=0; i<equipos.size();i++){
+        for(int i=0; i<equipos.size();i++){            
             
-            //ipEquipo = entry.getKey();
             ipEquipo = equipos.get(i);
+            if (ipEquipo.equals(this.ipServidor)){
+                System.out.println("Error: una de las direcciones de equipo"
+                        + " proporcionada es la misma de dirección de esta máquina");
+                System.exit(1);
+            }
             
             Equipo equipo = new Equipo();
             equipo.setActivo(false); //se inicializa equipo como inactivo
             equipo.setNotificacionReporteCargaEnviada(false);
             equipo.setRespuestaEntregada(false);
+            equipo.setComunicacionInicialExitosa(false);
             
             this.estadosEquipos.put(ipEquipo, equipo);
             //se inicializa la carga de cada equipo en 0
@@ -104,16 +123,6 @@ public class ServidorBroker {
         
         this.paises = new ArrayList<>();
         this.paisesPorDistribuir = new HashMap<>();
-        
-        //se consigue la ip de la máquina en que se está ejecutando esta función
-        InetAddress inetAddress = null;
-        try {
-            inetAddress = InetAddress.getLocalHost();
-        } catch (UnknownHostException ex) {
-            System.out.println("Error al conseguir la dirección IP de la máquina actual");
-            System.exit(1);
-        }        
-        this.ipServidor = inetAddress.getHostAddress();
        
     }
     
@@ -121,7 +130,7 @@ public class ServidorBroker {
     //equipos que el broker conoce
     public void establecerComunicacionInicialConEquipos(){
         
-        System.out.println("Estableciendo comunicación inicial con equipos");
+        System.out.println("\nESTABLECIENDO COMUNICACIÓN INICIAL CON EQUIPOS");
         
         String ipEquipo = null;
         
@@ -144,14 +153,14 @@ public class ServidorBroker {
             sender.enviarMensaje( mensaje );      
             System.out.println("Enviado mensaje inicial a "+ipEquipo);
             
+            /*
             Equipo equipo = this.estadosEquipos.get(ipEquipo);
             equipo.setNotificacionReporteCargaEnviada(true);
             this.estadosEquipos.replace(ipEquipo, equipo);
-            
+            */
         }
         
-        sem.release();
-        
+        sem.release();       
     }
     
     //función que envía mensaje a cada uno de los equipos que el broker conoce
@@ -164,35 +173,47 @@ public class ServidorBroker {
             @Override
             public void run() {
                 
-                System.out.println("Monitor de carga activado");
+                if(primeraIteracion == true){
+                    revisarEquiposConexionInicial();
+                }
+                primeraIteracion = false;
+                
+                System.out.println("\nSOLICITADOR DE REPORTE DE CARGA ACTIVADO");
                 
                 String ipEquipo = null;
                 
                 try {
                     sem.acquire();
                 } catch (InterruptedException ex) {
-                    Logger.getLogger(ServidorBroker.class.getName()).log(Level.SEVERE, null, ex);
+                    System.out.println("Error al intentar activar semáforo");
+                    System.exit(1);
                 }
         
                 for (HashMap.Entry<String, Equipo> entry : estadosEquipos.entrySet()) {
 
                     ipEquipo = entry.getKey();
-
-                    Mensaje mensaje = new Mensaje();
-                    mensaje.setIpSender(ipServidor);
-                    mensaje.setPais(null);
-                    mensaje.setInstrucccion(3);
-
-                    SenderBroker sender = new SenderBroker(ipEquipo, puerto);
-                    sender.enviarMensaje( mensaje );      
-                    System.out.println("Enviada solicitud de información de "
-                            + "procesamiento a "+ipEquipo);
-                    
                     Equipo equipo = estadosEquipos.get(ipEquipo);
-                    //equipo.setActivo(false);
-                    equipo.setNotificacionReporteCargaEnviada(true);
-                    equipo.setRespuestaEntregada(false);
-                    estadosEquipos.replace(ipEquipo, equipo);
+                    
+                    if(equipo.isComunicacionInicialExitosa() == true){
+
+                        Mensaje mensaje = new Mensaje();
+                        mensaje.setIpSender(ipServidor);
+                        mensaje.setPais(null);
+                        mensaje.setInstrucccion(3);
+
+                        SenderBroker sender = new SenderBroker(ipEquipo, puerto);
+                        sender.enviarMensaje( mensaje );   
+                        Date horaEnvioMensaje = new Date(); 
+                        System.out.println("Enviada solicitud de información de "
+                                + "procesamiento a "+ipEquipo);
+
+                        //actualizar estado del equipo
+
+                        equipo.setNotificacionReporteCargaEnviada(true);
+                        equipo.setRespuestaEntregada(false);
+                        equipo.setHoraUltimaNotificacionEnviada(horaEnvioMensaje);
+                        estadosEquipos.replace(ipEquipo, equipo);
+                    }
                 }
                 
                 sem.release();
@@ -265,15 +286,93 @@ public class ServidorBroker {
         return start;
     }
     
-    //función que envía mensajes a los equipos a los cuales se les solicita
-    //enviar un agente al broker, para realizar el balanceo de cargas
+    public void revisarEquiposConexionInicial(){    
+        
+        try {
+            this.sem.acquire();
+        } catch (InterruptedException ex) {
+            System.out.println("Error al intentar activar semáforo");
+            System.exit(1);
+        }
+        Equipo equipo;
+        int contador = 0;
+        for (HashMap.Entry<String, Equipo> entry : this.estadosEquipos.entrySet()) {                
+            equipo = entry.getValue();                   
+            if( equipo.isComunicacionInicialExitosa() == false ){
+                contador = contador + 1;
+            }
+        }
+        //System.out.println("contador "+contador);
+        //System.out.println("estados "+this.estadosEquipos.size());
+        if( contador == this.estadosEquipos.size() ){
+            System.out.println("No se logró entablar una comunicación inicial"
+                    + " con todos los equipos. Se procede a terminar.");
+            System.exit(1);
+        }
+        
+        this.sem.release();
+        
+    }
+    
+    public void monitorearEquiposActivos(){
+        
+        Equipo equipo;
+        int diferencia;
+        Date horaEnvioMensaje, horaActual;
+        
+        while(true){
+            
+            try {
+                sem.acquire();
+            } catch (InterruptedException ex) {
+                System.out.println("Error al intentar activar semáforo");
+                System.exit(1);
+            }
+            
+            for (HashMap.Entry<String, Equipo> entry : this.estadosEquipos.entrySet()) {
+                
+                equipo = entry.getValue();   
+                
+                if( equipo.isNotificacionReporteCargaEnviada() == true 
+                        && equipo.isRespuestaEntregada()==false ){
+                    
+                    horaEnvioMensaje = equipo.getHoraUltimaNotificacionEnviada();
+                    horaActual = new Date();
+                    
+                    diferencia = (int) (horaActual.getTime()-horaEnvioMensaje.getTime())/1000;
+                    //si han pasado más de 6 segundos en que el equipo no ha respondido
+                    if( diferencia > 6 ){ 
+                        //establecer ese equipo como inactivo
+                        equipo.setActivo(false);
+                        this.estadosEquipos.replace(entry.getKey(), equipo);
+                        System.out.println("El equipo "+entry.getKey()+" está inactivo");
+                    }    
+                }
+            }  
+            
+            sem.release();
+        }        
+    }
+    
+    //esta función se encarga de iniciar la función iniciarEscucha dentro de un hilo
+    public void iniciarMonitorEquiposActivos(){
+        Runnable task1 = () -> { this.monitorearEquiposActivos(); };      
+        Thread t1 = new Thread(task1);
+        t1.start();
+    }
+    
+    //función que establece cómo realizar el balanceo de cargas
+    //envía mensajes a los equipos a los cuales se les solicita
+    //enviar un agente al broker, para realizar el balanceo
     //esta función se ejecuta periódicamente
     public void definirDistribucion(){
         
         TimerTask task = new TimerTask() {
 
             @Override
-            public void run() {              
+            public void run() {      
+                
+                System.out.println("\nBALANCEADOR DE CARGA ACTIVADO");
                                
                 try {
                     sem.acquire();
@@ -284,191 +383,208 @@ public class ServidorBroker {
                 
                 //verificar si la carga de los equipos es igual o diferente
                 List<Long> valoresCargaEquipos = new ArrayList<>();
+                int cantidadEquiposActivos = 0;
                 for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {
-                    valoresCargaEquipos.add( entry.getValue() );
-                }                        
-                Long procesamientoIgual = valoresCargaEquipos.get(0);
-                boolean todosTienenMismaCarga = true;
-                for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {
-                    if( procesamientoIgual != entry.getValue() ){
-                        todosTienenMismaCarga = false;
-                        break;
+                    Equipo equipo = estadosEquipos.get( entry.getKey() );
+                    if(equipo.isActivo() == true){
+                        valoresCargaEquipos.add( entry.getValue() );
+                        cantidadEquiposActivos = cantidadEquiposActivos + 1;
                     }
-                }
+                }    
                 
-                //si todos tienen diferente carga entonces hay que balancear
-                if( todosTienenMismaCarga == false ){
-                    
-                    String equipoConMayorProcesamiento = null;
-                    String equipoConMenorProcesamiento = null;
-                    Long menorProcesamiento = Long.MAX_VALUE;
-                    Long mayorProcesamiento = Long.MIN_VALUE;
-                    Equipo equipo;
-                    
-                    boolean continuarDistribucion = true;                    
-                    
-                    List<String> equiposMayoresUsados = new ArrayList<>();                   
-                    
-                    while(continuarDistribucion){
-                        
-                        //conocer el equipo que tiene mayor y menor carga de procesamiento
-                        
-                        equipoConMayorProcesamiento = null;
-                        equipoConMenorProcesamiento = null;
-                        menorProcesamiento = Long.MAX_VALUE;
-                        mayorProcesamiento = Long.MIN_VALUE;
-                        
-                        for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {
-
-                            equipo = estadosEquipos.get(entry.getKey());                   
-
-                            if( equipo.isActivo() == true ){
-
-                                if( entry.getValue() < menorProcesamiento ){
-                                    menorProcesamiento = entry.getValue();
-                                    equipoConMenorProcesamiento = entry.getKey();
-                                }
-                                if( entry.getValue() > mayorProcesamiento 
-                                        && paisesProcesandosePorEquipo.get(entry.getKey())>1 ){
-                                                                   
-                                        if( !equiposMayoresUsados.contains(entry.getKey() ) ){
-                                            mayorProcesamiento = entry.getValue();
-                                            equipoConMayorProcesamiento = entry.getKey();
-                                        }          
-                                }
-
-                            }                         
-                        }
-
-                        if( equipoConMayorProcesamiento == null
-                                || equipoConMayorProcesamiento.equals(equipoConMenorProcesamiento) ){
-
-                            System.out.println("No se puede balancear más en este momento");
-                            break;
-
-                        }else{
-
-                            System.out.println("Equipo con mayor procesamiento es "+equipoConMayorProcesamiento);
-                            System.out.println("Equipo con menor procesamiento es "+equipoConMenorProcesamiento);
-
-                            //tomar el agente con menor procesamiento
-                            //del equipo con mayor procesamiento
-                            //(cuando ese equipo ejecuta más de 1 agente)
-                            //y darselo al equipo con menos procesamiento
-                            //pero antes revisar si se disminuye la desviación estándar
-                            //de la carga de todos los equipos (más balanceado)
-
-                            long[] cargasMayor = cargaPaisesPorEquipo.get(equipoConMayorProcesamiento);
-                            
-                            long cargaAgenteATransferir = cargasMayor[0];
-
-                            //la nueva carga del mayor sería la misma restando el agente que se va a transferir
-                            long nuevaCargaMayor = mayorProcesamiento - cargaAgenteATransferir;
-                            //la nueva carga del menor sería la misma sumando el agente que se va a transferir
-                            long nuevaCargaMenor = menorProcesamiento + cargaAgenteATransferir;
-
-                            List<Long> anteriorDistribucionCargas = new ArrayList<>();                    
-                            for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {                        
-                                anteriorDistribucionCargas.add(entry.getValue());                       
+                if(cantidadEquiposActivos > 1){
+                
+                    Long procesamientoIgual = valoresCargaEquipos.get(0);
+                    boolean todosTienenMismaCarga = true;
+                    for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {
+                        Equipo equipo = estadosEquipos.get( entry.getKey() );
+                        if(equipo.isActivo() == true){
+                            if( procesamientoIgual != entry.getValue() ){
+                                todosTienenMismaCarga = false;
+                                break;
                             }
+                        }
+                    }
 
-                            List<Long> nuevaDistribucionCargas = new ArrayList<>();
-                            nuevaDistribucionCargas.add(nuevaCargaMayor);
-                            nuevaDistribucionCargas.add(nuevaCargaMenor);
+                    //si todos tienen diferente carga entonces hay que balancear
+                    if( todosTienenMismaCarga == false ){
+
+                        String equipoConMayorProcesamiento = null;
+                        String equipoConMenorProcesamiento = null;
+                        Long menorProcesamiento = Long.MAX_VALUE;
+                        Long mayorProcesamiento = Long.MIN_VALUE;
+                        Equipo equipo;
+
+                        boolean continuarDistribucion = true;                    
+
+                        List<String> equiposMayoresUsados = new ArrayList<>();                   
+
+                        while(continuarDistribucion){
+
+                            //conocer el equipo que tiene mayor y menor carga de procesamiento
+
+                            equipoConMayorProcesamiento = null;
+                            equipoConMenorProcesamiento = null;
+                            menorProcesamiento = Long.MAX_VALUE;
+                            mayorProcesamiento = Long.MIN_VALUE;
 
                             for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {
-                                if( !entry.getKey().equals(equipoConMayorProcesamiento) &&
-                                        !entry.getKey().equals(equipoConMenorProcesamiento) ){
-                                    nuevaDistribucionCargas.add(entry.getValue());
-                                }
+
+                                equipo = estadosEquipos.get(entry.getKey());                   
+
+                                if( equipo.isActivo() == true ){
+
+                                    if( entry.getValue() < menorProcesamiento ){
+                                        menorProcesamiento = entry.getValue();
+                                        equipoConMenorProcesamiento = entry.getKey();
+                                    }
+                                    if( entry.getValue() > mayorProcesamiento 
+                                            && paisesProcesandosePorEquipo.get(entry.getKey())>1 ){
+
+                                            if( !equiposMayoresUsados.contains(entry.getKey() ) ){
+                                                mayorProcesamiento = entry.getValue();
+                                                equipoConMayorProcesamiento = entry.getKey();
+                                            }          
+                                    }
+
+                                }                         
                             }
 
-                            double desvEstandarAnterior;
-                            double desvEstandarNueva;
+                            if( equipoConMayorProcesamiento == null
+                                    || equipoConMayorProcesamiento.equals(equipoConMenorProcesamiento) ){
 
-                            desvEstandarAnterior = calcularDesvEstandarNuevaDistribucion(anteriorDistribucionCargas);                    
-                            desvEstandarNueva = calcularDesvEstandarNuevaDistribucion(nuevaDistribucionCargas);
-
-                            //si la nueva desv. estándar es menor, entonces hacer el intercambio
-                            if(desvEstandarNueva < desvEstandarAnterior){
-
-                                //usar mapa para saber a dónde distribuir ese país
-
-                                System.out.println("Se va a transferir un país con población "+cargasMayor[0]);
-
-                                paisesADistribuirEnEquipos.put(cargasMayor[0], equipoConMenorProcesamiento);
-
-                                //enviar mensaje para pedir el agente a trasladar
-
-                                String ipEquipo = equipoConMayorProcesamiento;
-
-                                Mensaje mensaje = new Mensaje();
-                                mensaje.setIpSender(ipServidor);
-                                mensaje.setPais(null);
-                                mensaje.setInstrucccion(7);
-                                mensaje.setPaisesInicio(null);
-
-                                SenderBroker sender = new SenderBroker(ipEquipo, puerto);
-                                sender.enviarMensaje( mensaje );      
-                                System.out.println("Enviado mensaje a "+ipEquipo+" "
-                                        + ", solicitando país para traslado con población "+
-                                        cargasMayor[0]+" que se va a mover a "+equipoConMenorProcesamiento);
-                                
-                                cargaPaisesPorEquipo.replace(ipEquipo, cargasMayor);
-
-                                //actualizar estado de las cargas para continuar el ciclo
-                                
-                                long[] cargasAntiguasMayor = cargaPaisesPorEquipo.get(equipoConMayorProcesamiento);
-                                long[] cargasAntiguasMenor = cargaPaisesPorEquipo.get(equipoConMenorProcesamiento);
-                                
-                                //actualizar cargas del mayor
-                                //se le quitó el proceso con menor carga (el primero)
-                                
-                                long[] cargasNuevasMayor = new long[ cargasAntiguasMayor.length-1 ];
-                                
-                                int j = 0;
-                                for(int k=1; k<cargasAntiguasMayor.length; k++){
-                                    cargasNuevasMayor[j] = cargasAntiguasMayor[k];
-                                    j = j + 1;
-                                }
-                                
-                                //actualizar cargas del mayor
-                                //se le adiciona un nuevo agente
-                                //hay que ordenar porque a priori no sé sabe su posición en el arreglo
-                                
-                                long[] cargasNuevasMenor = new long[ cargasAntiguasMenor.length+1 ]; ;
-                                
-                                for(int m=0; m<cargasAntiguasMayor.length; m++){
-                                    cargasNuevasMenor[m] = cargasAntiguasMenor[m];                                    
-                                }                                
-                                cargasNuevasMenor[ cargasAntiguasMenor.length ] = cargaAgenteATransferir;
-                                //ordenarlo
-                                //ordenar de menor a mayor la carga de los países
-                                quickSort(cargasNuevasMenor, 0, cargasNuevasMenor.length-1);
-                                
-                                cargaPaisesPorEquipo.replace(equipoConMayorProcesamiento, cargasNuevasMayor);
-                                cargaPaisesPorEquipo.replace(equipoConMenorProcesamiento, cargasNuevasMenor);
-                                
-                                cargaPorEquipo.replace(equipoConMayorProcesamiento, nuevaCargaMayor);
-                                cargaPorEquipo.replace(equipoConMenorProcesamiento, nuevaCargaMenor);
-                                
-                                int procesadosPorMayorAntes = paisesProcesandosePorEquipo.get(equipoConMayorProcesamiento);
-                                int procesadosPorMenorAntes = paisesProcesandosePorEquipo.get(equipoConMenorProcesamiento);
-                                paisesProcesandosePorEquipo.replace(equipoConMayorProcesamiento, procesadosPorMayorAntes-1);
-                                paisesProcesandosePorEquipo.replace(equipoConMenorProcesamiento, procesadosPorMenorAntes+1);
+                                System.out.println("No se puede balancear más en este momento");
+                                break;
 
                             }else{
-                                equiposMayoresUsados.add(equipoConMayorProcesamiento);
+
+                                System.out.println("Equipo con mayor procesamiento es "+equipoConMayorProcesamiento);
+                                System.out.println("Equipo con menor procesamiento es "+equipoConMenorProcesamiento);
+
+                                //tomar el agente con menor procesamiento
+                                //del equipo con mayor procesamiento
+                                //(cuando ese equipo ejecuta más de 1 agente)
+                                //y darselo al equipo con menos procesamiento
+                                //pero antes revisar si se disminuye la desviación estándar
+                                //de la carga de todos los equipos (más balanceado)
+
+                                long[] cargasMayor = cargaPaisesPorEquipo.get(equipoConMayorProcesamiento);
+
+                                long cargaAgenteATransferir = cargasMayor[0];
+
+                                //la nueva carga del mayor sería la misma restando el agente que se va a transferir
+                                long nuevaCargaMayor = mayorProcesamiento - cargaAgenteATransferir;
+                                //la nueva carga del menor sería la misma sumando el agente que se va a transferir
+                                long nuevaCargaMenor = menorProcesamiento + cargaAgenteATransferir;
+
+                                List<Long> anteriorDistribucionCargas = new ArrayList<>();                    
+                                for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {                        
+                                    anteriorDistribucionCargas.add(entry.getValue());                       
+                                }
+
+                                List<Long> nuevaDistribucionCargas = new ArrayList<>();
+                                nuevaDistribucionCargas.add(nuevaCargaMayor);
+                                nuevaDistribucionCargas.add(nuevaCargaMenor);
+
+                                for (HashMap.Entry<String, Long> entry : cargaPorEquipo.entrySet()) {
+                                    if( !entry.getKey().equals(equipoConMayorProcesamiento) &&
+                                            !entry.getKey().equals(equipoConMenorProcesamiento) ){
+                                        nuevaDistribucionCargas.add(entry.getValue());
+                                    }
+                                }
+
+                                double desvEstandarAnterior;
+                                double desvEstandarNueva;
+
+                                desvEstandarAnterior = calcularDesvEstandarNuevaDistribucion(anteriorDistribucionCargas);                    
+                                desvEstandarNueva = calcularDesvEstandarNuevaDistribucion(nuevaDistribucionCargas);
+
+                                //si la nueva desv. estándar es menor, entonces hacer el intercambio
+                                if(desvEstandarNueva < desvEstandarAnterior){
+
+                                    //usar mapa para saber a dónde distribuir ese país
+
+                                    System.out.println("Se va a transferir un país con población "+cargasMayor[0]);
+
+                                    paisesADistribuirEnEquipos.put(cargasMayor[0], equipoConMenorProcesamiento);
+
+                                    //enviar mensaje para pedir el agente a trasladar
+
+                                    String ipEquipo = equipoConMayorProcesamiento;
+
+                                    Mensaje mensaje = new Mensaje();
+                                    mensaje.setIpSender(ipServidor);
+                                    mensaje.setPais(null);
+                                    mensaje.setInstrucccion(7);
+                                    mensaje.setPaisesInicio(null);
+
+                                    SenderBroker sender = new SenderBroker(ipEquipo, puerto);
+                                    sender.enviarMensaje( mensaje );      
+                                    System.out.println("Enviado mensaje a "+ipEquipo+" "
+                                            + ", solicitando país para traslado con población "+
+                                            cargasMayor[0]+" que se va a mover a "+equipoConMenorProcesamiento);
+
+                                    cargaPaisesPorEquipo.replace(ipEquipo, cargasMayor);
+
+                                    //actualizar estado de las cargas para continuar el ciclo
+
+                                    long[] cargasAntiguasMayor = cargaPaisesPorEquipo.get(equipoConMayorProcesamiento);
+                                    long[] cargasAntiguasMenor = cargaPaisesPorEquipo.get(equipoConMenorProcesamiento);
+
+                                    //actualizar cargas del mayor
+                                    //se le quitó el proceso con menor carga (el primero)
+
+                                    long[] cargasNuevasMayor = new long[ cargasAntiguasMayor.length-1 ];
+
+                                    int j = 0;
+                                    for(int k=1; k<cargasAntiguasMayor.length; k++){
+                                        cargasNuevasMayor[j] = cargasAntiguasMayor[k];
+                                        j = j + 1;
+                                    }
+
+                                    //actualizar cargas del mayor
+                                    //se le adiciona un nuevo agente
+                                    //hay que ordenar porque a priori no sé sabe su posición en el arreglo
+
+                                    long[] cargasNuevasMenor = new long[ cargasAntiguasMenor.length+1 ]; ;
+
+                                    for(int m=0; m<cargasAntiguasMayor.length; m++){
+                                        cargasNuevasMenor[m] = cargasAntiguasMenor[m];                                    
+                                    }                                
+                                    cargasNuevasMenor[ cargasAntiguasMenor.length ] = cargaAgenteATransferir;
+                                    //ordenarlo
+                                    //ordenar de menor a mayor la carga de los países
+                                    quickSort(cargasNuevasMenor, 0, cargasNuevasMenor.length-1);
+
+                                    cargaPaisesPorEquipo.replace(equipoConMayorProcesamiento, cargasNuevasMayor);
+                                    cargaPaisesPorEquipo.replace(equipoConMenorProcesamiento, cargasNuevasMenor);
+
+                                    cargaPorEquipo.replace(equipoConMayorProcesamiento, nuevaCargaMayor);
+                                    cargaPorEquipo.replace(equipoConMenorProcesamiento, nuevaCargaMenor);
+
+                                    int procesadosPorMayorAntes = paisesProcesandosePorEquipo.get(equipoConMayorProcesamiento);
+                                    int procesadosPorMenorAntes = paisesProcesandosePorEquipo.get(equipoConMenorProcesamiento);
+                                    paisesProcesandosePorEquipo.replace(equipoConMayorProcesamiento, procesadosPorMayorAntes-1);
+                                    paisesProcesandosePorEquipo.replace(equipoConMenorProcesamiento, procesadosPorMenorAntes+1);
+
+                                }else{
+                                    equiposMayoresUsados.add(equipoConMayorProcesamiento);
+                                }
+
                             }
 
                         }
-                        
+
+                    }else{
+                        System.out.println("No se puede balancear más en este momento");
                     }
+                
                     
+                }else{
+                    System.out.println("No se puede balancear más en este momento");
                 }
                 
                 sem.release();
-                
             }
         };
 
@@ -494,7 +610,7 @@ public class ServidorBroker {
             @Override
             public void run() {
                 
-                    System.out.println("Distribuidor activado");
+                    System.out.println("\nDISTRIBUCIÓN DE PAÍSES DE EQUIPO CAÍDO ACTIVADA");
                     
                     /*
                     try {
@@ -547,7 +663,8 @@ public class ServidorBroker {
         try {
             ss = new ServerSocket(puerto);
         } catch (IOException ex) {
-            Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Error al abrir socket");
+            System.exit(1);
         }
         
         System.out.println("Iniciada escucha de mensajes entrantes");
@@ -598,7 +715,9 @@ public class ServidorBroker {
                         equipo = this.estadosEquipos.get(ipSender);
                         //se conoce que el equipo se encuentra activo, 
                         //se actualiza dicho estado
-                        equipo.setActivo(true);
+                        equipo.setActivo(true);     
+                        equipo.setComunicacionInicialExitosa(true);
+                        
                         this.estadosEquipos.replace(ipSender, equipo);
                         
                         //añadir a la lista de países del broker
@@ -664,15 +783,24 @@ public class ServidorBroker {
                         long[] cargaPaises = mensaje.getCargaPaisesPorEquipo();
 
                         this.sem.acquire();
+                        
+                        equipo = this.estadosEquipos.get(ipSender);
+                        //actualizar estado del equipo que envió mensaje                        
+                        equipo.setActivo(true);
+                        equipo.setNotificacionReporteCargaEnviada(false);
+                        equipo.setRespuestaEntregada(true);
+
+                        this.estadosEquipos.replace(ipSender, equipo);
 
                         //reemplazar por nuevo valor de uso de procesamiento
                         this.cargaPorEquipo.replace(ipSender, procesamientoEquipo);
                         this.paisesProcesandosePorEquipo.put(ipSender, numeroPaisesProcesando);
                         
                         equipo = this.estadosEquipos.get(ipSender);
-                        //equipo.setActivo(true);
+                        equipo.setActivo(true);
                         //se conoce que el reporte fue enviado pero ya se retornó
                         equipo.setNotificacionReporteCargaEnviada(false);
+                        equipo.setRespuestaEntregada(true);
                         this.estadosEquipos.replace(ipSender, equipo);  
                         
                         this.cargaPaisesPorEquipo.put(ipSender, cargaPaises);
@@ -724,7 +852,7 @@ public class ServidorBroker {
 
     //esta función se encarga de iniciar la función iniciarEscucha dentro de un hilo
     public void iniciarEscuchaServidor(){
-        Runnable task1 = () -> { this.iniciarEscucha();};      
+        Runnable task1 = () -> { this.iniciarEscucha(); };      
         Thread t1 = new Thread(task1);
         t1.start();
     }

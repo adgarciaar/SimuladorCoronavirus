@@ -23,7 +23,7 @@ public class Mensaje implements Serializable {
     
     //1 entregarPaisAEquipo, 2 entregarPaisABroker, 3 entregarRendimiento
     //4 realizarPrimeraComunicacion, 5 distribuirVirus, 6 paísRecibidoParaProcesar
-    //7 equipoEntregandoPaisABroker
+    //7 equipoEntregandoPaisABroker //8 terminación sin error //9 terminación con error
     private int instrucccion; 
     
     private Pais pais; //país que se está trasladando (nulo si se está realizando otra operación)    
@@ -38,6 +38,8 @@ public class Mensaje implements Serializable {
     private int numeroPaisesProcesando;
     
     private long[] cargaPaisesPorEquipo;
+    
+    private String texto;
 
     public Mensaje() {
     }
@@ -96,6 +98,14 @@ public class Mensaje implements Serializable {
 
     public void setCargaPaisesPorEquipo(long[] cargaPaisesPorEquipo) {
         this.cargaPaisesPorEquipo = cargaPaisesPorEquipo;
+    }
+
+    public String getTexto() {
+        return texto;
+    }
+
+    public void setTexto(String texto) {
+        this.texto = texto;
     }
     
 }
