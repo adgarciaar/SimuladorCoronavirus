@@ -1,5 +1,6 @@
 broker	si
-puerto	7777
-equipos	2
+puerto	7777	7778
+brokers	1
 192.168.0.9
+equipos	1
 192.168.0.10

@@ -43,27 +43,56 @@ public class Inicio {
             System.exit(1);
         } 
         
-        /*instruccionesConfiguracion.forEach((linea) -> {
-            System.out.println(linea);
-        });*/
-        
         //si es un broker
         if(instruccionesConfiguracion.get(0).equals("broker\tsi")){
             
-            //HashMap<String, Long> equipos = new HashMap<>();
+            boolean esArranque= true;
+            
+            
+            List<String> otrosBrokers = new ArrayList<>();
             List<String> equipos = new ArrayList<>();
             
             String[] arrayLinea = instruccionesConfiguracion.get(1).split("\t");
-            int puerto = Integer.parseInt( arrayLinea[1] );
+            int puertoEquipos = Integer.parseInt( arrayLinea[1] );
+            int puertoBrokers = Integer.parseInt( arrayLinea[2] );
+            
+            System.out.println("Puerto para comunicación con equipos: "+puertoEquipos);
+            System.out.println("Puerto para comunicación con brokers: "+puertoBrokers+"\n");
             
             arrayLinea = instruccionesConfiguracion.get(2).split("\t");
+            int numeroOtrosBrokers = Integer.parseInt(arrayLinea[1]);
+            
+            System.out.println("Número de otros brokers: "+numeroOtrosBrokers+"\n");
+            
+            String ipSiguienteBroker;
+            
+            /*System.out.println("desde "+3);
+            System.out.println("hasta "+(3+numeroOtrosBrokers-1));*/
+            
+            for (int i = 3; i < 3+numeroOtrosBrokers; i++) {
+                
+                ipSiguienteBroker = instruccionesConfiguracion.get(i);
+                
+                //equipos.put(ipSiguienteEquipo, 0L);
+                otrosBrokers.add(ipSiguienteBroker);
+                
+                System.out.println(ipSiguienteBroker);
+            }
+            
+            System.out.print("\n");
+            
+            
+            arrayLinea = instruccionesConfiguracion.get(3+numeroOtrosBrokers).split("\t");
             int numeroEquipos = Integer.parseInt(arrayLinea[1]);
             
             System.out.println("Número de equipos para procesamiento: "+numeroEquipos+"\n");
             
             String ipSiguienteEquipo;
             
-            for (int i = 3; i < 3+numeroEquipos; i++) {
+            /*System.out.println("desde "+(3+numeroOtrosBrokers+1));
+            System.out.println("hasta "+(3+numeroOtrosBrokers+1+numeroEquipos-1));*/
+            
+            for (int i = 3+numeroOtrosBrokers+1; i < 3+numeroOtrosBrokers+1+numeroEquipos; i++) {
                 
                 ipSiguienteEquipo = instruccionesConfiguracion.get(i);
                 
@@ -75,13 +104,22 @@ public class Inicio {
             
             System.out.print("\n");
             
-            ServidorBroker servidorBroker = new ServidorBroker( puerto,  equipos);
-            servidorBroker.iniciarEscuchaServidor();
-            servidorBroker.establecerComunicacionInicialConEquipos();            
-            servidorBroker.solicitarCargaEquipos();   
-            servidorBroker.iniciarMonitorEquiposActivos();
-            servidorBroker.definirDistribucion();
-            
+            if (esArranque){
+                
+                ServidorBroker servidorBroker = new ServidorBroker( puertoEquipos, 
+                        puertoBrokers, equipos, otrosBrokers);
+                servidorBroker.iniciarEscuchaServidor();
+                servidorBroker.establecerComunicacionInicialConEquipos();            
+                servidorBroker.solicitarCargaEquipos();   
+                servidorBroker.iniciarMonitorEquiposActivos();
+                servidorBroker.definirDistribucion();  
+                
+            }else{
+                
+                ServidorBroker servidorBroker = new ServidorBroker( puertoEquipos, 
+                        puertoBrokers);
+                servidorBroker.iniciarEscuchaBrokers();
+            }            
             
         //si no es un broker
         }else{

@@ -15,7 +15,7 @@ import java.util.List;
 
 //clase cuyos parámetros permiten establecer una comunicación entre los brokers
 //y los equipos de procesamiento
-public class Mensaje implements Serializable {
+public class Mensaje extends MensajeGeneral {
     
     //variable para indicar el tipo de operación requerida o a realizar
     //tanto para broker como para equipo de procesamiento
@@ -24,11 +24,11 @@ public class Mensaje implements Serializable {
     //1 entregarPaisAEquipo, 2 entregarPaisABroker, 3 entregarRendimiento
     //4 realizarPrimeraComunicacion, 5 distribuirVirus, 6 paísRecibidoParaProcesar
     //7 equipoEntregandoPaisABroker //8 terminación sin error //9 terminación con error
-    private int instrucccion; 
+    //private int instruccion; 
     
     private Pais pais; //país que se está trasladando (nulo si se está realizando otra operación)    
     
-    private String ipSender; //ip de la máquina que envía el mensaje
+    //private String ipSender; //ip de la máquina que envía el mensaje
     
     //procesamiento total de la máquina (en caso de que sea equipo de procesamiento)
     private Long procesamientoEquipo; 
@@ -52,36 +52,12 @@ public class Mensaje implements Serializable {
         this.pais = pais;
     }
 
-    public int getInstrucccion() {
-        return instrucccion;
-    }
-
-    public void setInstrucccion(int instrucccion) {
-        this.instrucccion = instrucccion;
-    }
-
-    public String getIpSender() {
-        return ipSender;
-    }
-
-    public void setIpSender(String ipSender) {
-        this.ipSender = ipSender;
-    }
-
     public Long getProcesamientoEquipo() {
         return procesamientoEquipo;
     }
 
     public void setProcesamientoEquipo(Long procesamientoEquipo) {
         this.procesamientoEquipo = procesamientoEquipo;
-    }
-
-    public List<Pais> getPaisesInicio() {
-        return paisesInicio;
-    }
-
-    public void setPaisesInicio(List<Pais> paisesInicio) {
-        this.paisesInicio = paisesInicio;
     }
 
     public int getNumeroPaisesProcesando() {
@@ -106,6 +82,14 @@ public class Mensaje implements Serializable {
 
     public void setTexto(String texto) {
         this.texto = texto;
+    }
+
+    public List<Pais> getPaisesInicio() {
+        return paisesInicio;
+    }
+
+    public void setPaisesInicio(List<Pais> paisesInicio) {
+        this.paisesInicio = paisesInicio;
     }
     
 }

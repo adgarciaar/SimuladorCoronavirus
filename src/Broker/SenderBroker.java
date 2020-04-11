@@ -6,6 +6,7 @@
 package Broker;
 
 import Entidades.Mensaje;
+import Entidades.MensajeGeneral;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
@@ -32,7 +33,7 @@ public class SenderBroker {
     }
     
     //función que envía un objeto de tipo Mensaje al equipo especificado
-    public void enviarMensaje(Mensaje mensaje){
+    public void enviarMensaje(MensajeGeneral mensaje){
         
         Socket socket = null;
         

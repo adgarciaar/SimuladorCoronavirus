@@ -8,6 +8,7 @@ package Broker;
 import Entidades.Equipo;
 import Entidades.Pais;
 import Entidades.Mensaje;
+import Entidades.MensajeBroker;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -33,7 +34,8 @@ import java.util.TimerTask;
 public class ServidorBroker {
     
     private String ipServidor; //guarda la ip de la máquina en que se ejecuta
-    private int puerto; //puerto con el que se comunica esta máquina
+    private int puertoEquipos; //puertoEquipos con el que se comunica esta máquina
+    private int puertoBrokers; //con el que se comunica con otros brokers
     private volatile List<Pais> paises; //lista de países que se están ejecutando en las diferentes máquinas
     
     //mapa que guarda tuplas < Nombre de un país, IP del equipo donde se está ejecutando >
@@ -70,9 +72,13 @@ public class ServidorBroker {
     //la totalidad de los equipos no pudieron establecer comunicación inicial
     private boolean primeraIteracion;
     
-    //constructor de la clase, se le pasan el puerto por el que se va a comunicar
+    
+    private volatile HashMap<String, String> otrosBrokers;
+    
+    //constructor de la clase, se le pasan el puertoEquipos por el que se va a comunicar
     //y un mapa con los equipos precargados con los que se va a comunicar
-    public ServidorBroker(int puerto, List<String> equipos) {
+    public ServidorBroker(int puertoEquipos, int puertoBrokers, 
+            List<String> equipos, List<String> otrosBrokers) {
         
         //se consigue la ip de la máquina en que se está ejecutando esta función
         InetAddress inetAddress = null;
@@ -84,13 +90,16 @@ public class ServidorBroker {
         }        
         this.ipServidor = inetAddress.getHostAddress();
         
-        this.puerto = puerto;
+        this.puertoEquipos = puertoEquipos;
+        this.puertoBrokers = puertoBrokers;
+        
         this.cargaPorEquipo = new HashMap<>();
         this.estadosEquipos = new HashMap<>();
         this.paisesEnEquipos = new HashMap<>();
         this.paisesProcesandosePorEquipo = new HashMap();
         this.cargaPaisesPorEquipo = new HashMap();        
         this.paisesADistribuirEnEquipos = new HashMap();
+        this.otrosBrokers = new HashMap();
         this.primeraIteracion = true;
         
         String ipEquipo;
@@ -115,7 +124,12 @@ public class ServidorBroker {
             //se inicializa la carga de cada equipo en 0
             this.cargaPorEquipo.put(ipEquipo, 0L);
             this.cargaPaisesPorEquipo.put(ipEquipo, null);
-        }        
+            this.paisesProcesandosePorEquipo.put(ipEquipo, 0);
+        }
+
+        for(int j=0; j<otrosBrokers.size();j++){      
+            this.otrosBrokers.put(otrosBrokers.get(j), null);
+        }     
         
         //se inicializa el semáforo con 1, para que sólo una función pueda
         //acceder a la vez a las variables de la clase
@@ -123,7 +137,39 @@ public class ServidorBroker {
         
         this.paises = new ArrayList<>();
         this.paisesPorDistribuir = new HashMap<>();
+        
+        this.establecerComunicacionOtrosBrokers(equipos, otrosBrokers);
        
+    }
+
+    public ServidorBroker(int puertoEquipos, int puertoBrokers) {
+        this.puertoEquipos = puertoEquipos;
+        this.puertoBrokers = puertoBrokers;
+    }   
+    
+    public void establecerComunicacionOtrosBrokers( List<String> equipos, 
+            List<String> otrosBrokers ){
+        
+        System.out.println("\nESTABLECIENDO COMUNICACIÓN INICIAL CON OTROS BROKERS");
+        
+        String ipBroker;
+        
+        for (HashMap.Entry<String, String> entry : this.otrosBrokers.entrySet()) {
+            
+            ipBroker = entry.getKey();
+            
+            MensajeBroker mensaje = new MensajeBroker();
+            mensaje.setIpSender(this.ipServidor);
+            mensaje.setInstruccion(1);
+            mensaje.setBrokers(otrosBrokers);
+            mensaje.setEquipos(equipos);
+            
+            SenderBroker sender = new SenderBroker(ipBroker, this.puertoBrokers);
+            sender.enviarMensaje( mensaje );      
+            System.out.println("Enviado mensaje inicial a "+ipBroker);
+            
+        }
+        
     }
     
     //función para enviar mensajes de comunicación inicial a cada uno de los
@@ -137,7 +183,8 @@ public class ServidorBroker {
         try {
             sem.acquire();
         } catch (InterruptedException ex) {
-            Logger.getLogger(ServidorBroker.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Error al intentar activar semáforo");
+            System.exit(1);
         }
         
         for (HashMap.Entry<String, Equipo> entry : this.estadosEquipos.entrySet()) {
@@ -147,9 +194,9 @@ public class ServidorBroker {
             Mensaje mensaje = new Mensaje();
             mensaje.setIpSender(this.ipServidor);
             mensaje.setPais(null);
-            mensaje.setInstrucccion(4);
+            mensaje.setInstruccion(4);
             
-            SenderBroker sender = new SenderBroker(ipEquipo, this.puerto);
+            SenderBroker sender = new SenderBroker(ipEquipo, this.puertoEquipos);
             sender.enviarMensaje( mensaje );      
             System.out.println("Enviado mensaje inicial a "+ipEquipo);
             
@@ -199,9 +246,9 @@ public class ServidorBroker {
                         Mensaje mensaje = new Mensaje();
                         mensaje.setIpSender(ipServidor);
                         mensaje.setPais(null);
-                        mensaje.setInstrucccion(3);
+                        mensaje.setInstruccion(3);
 
-                        SenderBroker sender = new SenderBroker(ipEquipo, puerto);
+                        SenderBroker sender = new SenderBroker(ipEquipo, puertoEquipos);
                         sender.enviarMensaje( mensaje );   
                         Date horaEnvioMensaje = new Date(); 
                         System.out.println("Enviada solicitud de información de "
@@ -515,10 +562,10 @@ public class ServidorBroker {
                                     Mensaje mensaje = new Mensaje();
                                     mensaje.setIpSender(ipServidor);
                                     mensaje.setPais(null);
-                                    mensaje.setInstrucccion(7);
+                                    mensaje.setInstruccion(7);
                                     mensaje.setPaisesInicio(null);
 
-                                    SenderBroker sender = new SenderBroker(ipEquipo, puerto);
+                                    SenderBroker sender = new SenderBroker(ipEquipo, puertoEquipos);
                                     sender.enviarMensaje( mensaje );      
                                     System.out.println("Enviado mensaje a "+ipEquipo+" "
                                             + ", solicitando país para traslado con población "+
@@ -648,6 +695,37 @@ public class ServidorBroker {
         timer.schedule(task, tiempoInicialEspera, tiempoPeriodicoEjecucion);
         
     }
+    
+    public void terminarEjecucionConErrores(String mensajeError){
+        
+        try {
+            this.sem.acquire();
+        } catch (InterruptedException ex) {
+            System.out.println("Error al intentar activar semáforo");
+            System.exit(1);
+        }
+        String ipEquipo = null;
+        for (HashMap.Entry<String, Equipo> entry : this.estadosEquipos.entrySet()) {
+            ipEquipo = entry.getKey();
+            
+            Mensaje mensaje = new Mensaje();
+            mensaje.setIpSender(this.ipServidor);
+            mensaje.setPais(null);
+            mensaje.setInstruccion(9);
+            mensaje.setTexto(mensajeError);
+
+            SenderBroker sender = new SenderBroker(ipEquipo, this.puertoEquipos);
+            sender.enviarMensaje( mensaje );   
+                        
+            System.out.println("Enviada solicitud de terminación a "+ipEquipo);
+        } 
+        
+        this.sem.release();
+        
+        System.out.println("Error: "+mensajeError);
+        
+        System.exit(1);
+    }
 
     //esta función se encarga de estar pendiente de todas las comunicaciones
     //entrantes al broker, en un ciclo infinito, que siempre está activo
@@ -661,7 +739,7 @@ public class ServidorBroker {
         ServerSocket ss = null;
         
         try {
-            ss = new ServerSocket(puerto);
+            ss = new ServerSocket(puertoEquipos);
         } catch (IOException ex) {
             System.out.println("Error al abrir socket");
             System.exit(1);
@@ -693,7 +771,7 @@ public class ServidorBroker {
                 int numeroPaisesProcesando;
                 Equipo equipo = null;
                 
-                switch(mensaje.getInstrucccion()) {
+                switch(mensaje.getInstruccion()) {
                     
                     case 4: //recibiendo primera comunicación con un equipo
                         
@@ -704,18 +782,18 @@ public class ServidorBroker {
                         ipSender = mensaje.getIpSender();
                         procesamientoEquipo = mensaje.getProcesamientoEquipo();
                         paisesInicio = mensaje.getPaisesInicio();
-                        numeroPaisesProcesando = mensaje.getNumeroPaisesProcesando();
+                        //numeroPaisesProcesando = mensaje.getNumeroPaisesProcesando();
 
                         this.sem.acquire();
-
+                        
                         //reemplazar por nuevo valor de procesamiento
                         this.cargaPorEquipo.replace(ipSender, procesamientoEquipo);
-                        this.paisesProcesandosePorEquipo.put(ipSender, numeroPaisesProcesando);
+                        //this.paisesProcesandosePorEquipo.put(ipSender, numeroPaisesProcesando
                         
-                        equipo = this.estadosEquipos.get(ipSender);
+                        equipo = this.estadosEquipos.get(ipSender);   
                         //se conoce que el equipo se encuentra activo, 
                         //se actualiza dicho estado
-                        equipo.setActivo(true);     
+                        equipo.setActivo(true);   
                         equipo.setComunicacionInicialExitosa(true);
                         
                         this.estadosEquipos.replace(ipSender, equipo);
@@ -725,9 +803,12 @@ public class ServidorBroker {
                         this.paises.addAll(paisesInicio);
                         for(int i=0; i<paisesInicio.size(); i++){
                             if( this.paisesEnEquipos.get( paisesInicio.get(i).getNombre() )!=null ){
-                                System.out.println("Error: se ha duplicado un país "
+                                //System.out.println("Error: se ha duplicado un país "
+                                //        + "en los equipos de procesamiento.");
+                                this.sem.release(); 
+                                this.terminarEjecucionConErrores("se ha duplicado un país "
                                         + "en los equipos de procesamiento.");
-                                System.exit(1);
+                                //System.exit(1);
                             }
                             this.paisesEnEquipos.put(paisesInicio.get(i).getNombre()
                                     , ipSender);
@@ -756,9 +837,9 @@ public class ServidorBroker {
                         Mensaje nuevoMensaje = new Mensaje();
                         nuevoMensaje.setIpSender(this.ipServidor);
                         nuevoMensaje.setPais(pais);
-                        nuevoMensaje.setInstrucccion(1);
+                        nuevoMensaje.setInstruccion(1);
 
-                        SenderBroker sender = new SenderBroker(ipEquipoARepartir, this.puerto);
+                        SenderBroker sender = new SenderBroker(ipEquipoARepartir, this.puertoEquipos);
                         sender.enviarMensaje( nuevoMensaje );      
                         System.out.println("Enviado país "+ pais.getNombre() 
                                 +" a "+ipEquipoARepartir+" con población "+pais.getPoblacion());
@@ -844,7 +925,7 @@ public class ServidorBroker {
                     System.out.println("Problema al cerrar socket");
                     System.exit(1);
                 }
-                //e.printStackTrace(); 
+                
             } 
         } 
         
@@ -853,6 +934,67 @@ public class ServidorBroker {
     //esta función se encarga de iniciar la función iniciarEscucha dentro de un hilo
     public void iniciarEscuchaServidor(){
         Runnable task1 = () -> { this.iniciarEscucha(); };      
+        Thread t1 = new Thread(task1);
+        t1.start();
+    }
+    
+    public void iniciarEscuchaBrokers(){
+        
+        ServerSocket ss = null;
+        
+        try {
+            ss = new ServerSocket(this.puertoBrokers);
+        } catch (IOException ex) {
+            System.out.println("Error al abrir socket");
+            System.exit(1);
+        }
+        
+        System.out.println("Iniciada escucha de mensajes entrantes de brokers");
+        
+        while (true){
+            
+            Socket socket = null;    
+              
+            try { 
+                
+                // socket object to receive incoming client requests 
+                socket = ss.accept(); 
+                
+                // get the input stream from the connected socket
+                InputStream inputStream = socket.getInputStream();
+                // create a DataInputStream so we can read data from it.
+                ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+                  
+                System.out.println("Mensaje entrante proveniente de broker " + socket);
+                
+                MensajeBroker mensaje = (MensajeBroker)objectInputStream.readObject();                
+                
+                String ipSender = null;                
+                
+                switch(mensaje.getInstruccion()) {
+				
+                    case 1: //recibiendo primera comunicación con un broker
+                        
+                        System.out.println("Llega mensaje desde el otro broker");
+					
+			break;
+                }
+				
+            }catch (Exception e){ 
+                try { 
+                    socket.close();
+                } catch (IOException ex) {
+                    System.out.println("Problema al cerrar socket");
+                    System.exit(1);
+                }
+                
+            }
+        }
+    }
+    
+    //esta función se encarga de iniciar la función iniciarEscucha dentro de un hilo
+    public void iniciarEscuchaServidorBrokers(){
+        Runnable task1 = () -> { this.iniciarEscuchaBrokers(); };      
         Thread t1 = new Thread(task1);
         t1.start();
     }

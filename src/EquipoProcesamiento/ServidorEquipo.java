@@ -205,7 +205,7 @@ public class ServidorEquipo {
                 
                 long procesamientoTotal = 0;
                 
-                switch(mensaje.getInstrucccion()) {
+                switch(mensaje.getInstruccion()) {
                     
                     case 1: //recibiendo país desde broker
                         
@@ -235,7 +235,7 @@ public class ServidorEquipo {
                         nuevoMensaje = new Mensaje();
                         nuevoMensaje.setIpSender(this.ipServidor);
                         nuevoMensaje.setPais(pais);
-                        nuevoMensaje.setInstrucccion(6);
+                        nuevoMensaje.setInstruccion(6);
 
                         sender = new SenderEquipo(ipSender, this.puerto);
                         sender.enviarMensaje( nuevoMensaje );  
@@ -256,7 +256,7 @@ public class ServidorEquipo {
                         nuevoMensaje = new Mensaje();
                         nuevoMensaje.setIpSender(this.ipServidor);
                         nuevoMensaje.setPais(null);
-                        nuevoMensaje.setInstrucccion(4);
+                        nuevoMensaje.setInstruccion(4);
                         nuevoMensaje.setPaisesInicio(this.paises);
                         
                         this.sem.acquire();
@@ -308,7 +308,7 @@ public class ServidorEquipo {
                         nuevoMensaje.setProcesamientoEquipo(procesamientoTotal);
                         nuevoMensaje.setNumeroPaisesProcesando(this.paises.size());
                         nuevoMensaje.setPais(null);
-                        nuevoMensaje.setInstrucccion(3);      
+                        nuevoMensaje.setInstruccion(3);      
                         nuevoMensaje.setCargaPaisesPorEquipo(cargaPaisesPorEquipo);
 
                         sender = new SenderEquipo(ipSender, this.puerto);
@@ -354,7 +354,7 @@ public class ServidorEquipo {
                         nuevoMensaje = new Mensaje();
                         nuevoMensaje.setPais(paisSaliente);
                         nuevoMensaje.setIpSender(this.ipServidor);
-                        nuevoMensaje.setInstrucccion(2);
+                        nuevoMensaje.setInstruccion(2);
 
                         sender = new SenderEquipo(ipSender, this.puerto);
                         sender.enviarMensaje( nuevoMensaje );   
