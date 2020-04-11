@@ -20,6 +20,7 @@ public class Equipo {
     private boolean respuestaEntregada;
     private Date horaUltimaNotificacionEnviada;
     private boolean comunicacionInicialExitosa;
+    private boolean paisesRepartidosPorCaida;
 
     public Equipo() {
     }    
@@ -62,6 +63,14 @@ public class Equipo {
 
     public void setComunicacionInicialExitosa(boolean comunicacionInicialExitosa) {
         this.comunicacionInicialExitosa = comunicacionInicialExitosa;
+    }
+
+    public boolean isPaisesRepartidosPorCaida() {
+        return paisesRepartidosPorCaida;
+    }
+
+    public void setPaisesRepartidosPorCaida(boolean paisesRepartidosPorCaida) {
+        this.paisesRepartidosPorCaida = paisesRepartidosPorCaida;
     }
     
 }

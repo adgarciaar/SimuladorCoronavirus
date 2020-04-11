@@ -5,15 +5,12 @@
  */
 package Broker;
 
-import Entidades.Mensaje;
 import Entidades.MensajeGeneral;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import EquipoProcesamiento.SenderEquipo;
 
 /**
  *
@@ -38,7 +35,10 @@ public class SenderBroker {
         Socket socket = null;
         
         try {
-            socket = new Socket(this.ip, this.puerto);
+            //socket = new Socket(this.ip, this.puerto);
+            socket = new Socket();
+            socket.connect(new InetSocketAddress(this.ip, this.puerto), 2*1000);
+            //socket.setSoTimeout(5*1000);
         } catch (IOException ex) {
             System.out.println("Error al abrir socket para comunicación con "+this.ip);
             System.out.println(ex.toString());

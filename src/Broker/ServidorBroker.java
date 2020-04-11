@@ -20,10 +20,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Semaphore;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -36,10 +35,15 @@ public class ServidorBroker {
     private String ipServidor; //guarda la ip de la máquina en que se ejecuta
     private int puertoEquipos; //puertoEquipos con el que se comunica esta máquina
     private int puertoBrokers; //con el que se comunica con otros brokers
+    private int numeroBroker;
+    
     private volatile List<Pais> paises; //lista de países que se están ejecutando en las diferentes máquinas
     
     //mapa que guarda tuplas < Nombre de un país, IP del equipo donde se está ejecutando >
     private volatile HashMap<String, String> paisesEnEquipos;
+    
+    //mapa que guarda tuplas < Nombre de un país, Objeto País >
+    private volatile HashMap<String, Pais> conjuntoPaises;
     
     //mapa que guarda duplas < IP de un equipo, Pareja<NúmeroMayorProcesamiento, NúmeroMenorProcesamiento> >
     //para establecer cómo se va a realizar el balanceo de cargas
@@ -72,8 +76,9 @@ public class ServidorBroker {
     //la totalidad de los equipos no pudieron establecer comunicación inicial
     private boolean primeraIteracion;
     
+    private List<String> equiposIniciales;    
     
-    private volatile HashMap<String, String> otrosBrokers;
+    private volatile LinkedHashMap<String, String> brokers;
     
     //constructor de la clase, se le pasan el puertoEquipos por el que se va a comunicar
     //y un mapa con los equipos precargados con los que se va a comunicar
@@ -99,7 +104,8 @@ public class ServidorBroker {
         this.paisesProcesandosePorEquipo = new HashMap();
         this.cargaPaisesPorEquipo = new HashMap();        
         this.paisesADistribuirEnEquipos = new HashMap();
-        this.otrosBrokers = new HashMap();
+        this.brokers = new LinkedHashMap<>();
+        this.conjuntoPaises = new HashMap();
         this.primeraIteracion = true;
         
         String ipEquipo;
@@ -119,6 +125,8 @@ public class ServidorBroker {
             equipo.setNotificacionReporteCargaEnviada(false);
             equipo.setRespuestaEntregada(false);
             equipo.setComunicacionInicialExitosa(false);
+            equipo.setHoraUltimaNotificacionEnviada(null);
+            equipo.setPaisesRepartidosPorCaida(false);
             
             this.estadosEquipos.put(ipEquipo, equipo);
             //se inicializa la carga de cada equipo en 0
@@ -127,9 +135,11 @@ public class ServidorBroker {
             this.paisesProcesandosePorEquipo.put(ipEquipo, 0);
         }
 
+        this.numeroBroker = 0;
+        this.brokers.put(this.ipServidor, "Activo");
         for(int j=0; j<otrosBrokers.size();j++){      
-            this.otrosBrokers.put(otrosBrokers.get(j), null);
-        }     
+            this.brokers.put(otrosBrokers.get(j), "Esperando");
+        }
         
         //se inicializa el semáforo con 1, para que sólo una función pueda
         //acceder a la vez a las variables de la clase
@@ -138,36 +148,49 @@ public class ServidorBroker {
         this.paises = new ArrayList<>();
         this.paisesPorDistribuir = new HashMap<>();
         
-        this.establecerComunicacionOtrosBrokers(equipos, otrosBrokers);
+        this.establecerComunicacionOtrosBrokers(equipos);
        
     }
 
     public ServidorBroker(int puertoEquipos, int puertoBrokers) {
+        //se consigue la ip de la máquina en que se está ejecutando esta función
+        InetAddress inetAddress = null;
+        try {
+            inetAddress = InetAddress.getLocalHost();
+        } catch (UnknownHostException ex) {
+            System.out.println("Error al conseguir la dirección IP de la máquina actual");
+            System.exit(1);
+        }        
+        this.ipServidor = inetAddress.getHostAddress();
         this.puertoEquipos = puertoEquipos;
         this.puertoBrokers = puertoBrokers;
     }   
     
-    public void establecerComunicacionOtrosBrokers( List<String> equipos, 
-            List<String> otrosBrokers ){
+    public void establecerComunicacionOtrosBrokers( List<String> equipos ){
         
         System.out.println("\nESTABLECIENDO COMUNICACIÓN INICIAL CON OTROS BROKERS");
         
         String ipBroker;
-        
-        for (HashMap.Entry<String, String> entry : this.otrosBrokers.entrySet()) {
+        int contador = 0;
+        for (HashMap.Entry<String, String> entry : this.brokers.entrySet()) {
             
             ipBroker = entry.getKey();
             
-            MensajeBroker mensaje = new MensajeBroker();
-            mensaje.setIpSender(this.ipServidor);
-            mensaje.setInstruccion(1);
-            mensaje.setBrokers(otrosBrokers);
-            mensaje.setEquipos(equipos);
+            if( !ipBroker.equals(this.ipServidor) ){
             
-            SenderBroker sender = new SenderBroker(ipBroker, this.puertoBrokers);
-            sender.enviarMensaje( mensaje );      
-            System.out.println("Enviado mensaje inicial a "+ipBroker);
+                MensajeBroker mensaje = new MensajeBroker();
+                mensaje.setIpSender(this.ipServidor);
+                mensaje.setInstruccion(1);
+                mensaje.setBrokers(this.brokers);
+                mensaje.setEquipos(equipos);
+                mensaje.setNumeroBroker(contador);
+
+                SenderBroker sender = new SenderBroker(ipBroker, this.puertoBrokers);
+                sender.enviarMensaje( mensaje );      
+                System.out.println("Enviado mensaje inicial a "+ipBroker);            
+            }
             
+            contador = contador + 1;
         }
         
     }
@@ -255,10 +278,11 @@ public class ServidorBroker {
                                 + "procesamiento a "+ipEquipo);
 
                         //actualizar estado del equipo
-
-                        equipo.setNotificacionReporteCargaEnviada(true);
-                        equipo.setRespuestaEntregada(false);
-                        equipo.setHoraUltimaNotificacionEnviada(horaEnvioMensaje);
+                        if(equipo.isActivo() == true){
+                            equipo.setNotificacionReporteCargaEnviada(true);
+                            equipo.setRespuestaEntregada(false);
+                            equipo.setHoraUltimaNotificacionEnviada(horaEnvioMensaje);
+                        }
                         estadosEquipos.replace(ipEquipo, equipo);
                     }
                 }
@@ -364,6 +388,7 @@ public class ServidorBroker {
     public void monitorearEquiposActivos(){
         
         Equipo equipo;
+        String equipoMonitoreado;
         int diferencia;
         Date horaEnvioMensaje, horaActual;
         
@@ -378,7 +403,8 @@ public class ServidorBroker {
             
             for (HashMap.Entry<String, Equipo> entry : this.estadosEquipos.entrySet()) {
                 
-                equipo = entry.getValue();   
+                equipo = entry.getValue();  
+                equipoMonitoreado = entry.getKey();
                 
                 if( equipo.isNotificacionReporteCargaEnviada() == true 
                         && equipo.isRespuestaEntregada()==false ){
@@ -391,9 +417,77 @@ public class ServidorBroker {
                     if( diferencia > 6 ){ 
                         //establecer ese equipo como inactivo
                         equipo.setActivo(false);
+                        equipo.setNotificacionReporteCargaEnviada(false);                        
                         this.estadosEquipos.replace(entry.getKey(), equipo);
                         System.out.println("El equipo "+entry.getKey()+" está inactivo");
                     }    
+                    
+                }else{
+                    //si equipo es inactivo y pasan más de 45 segundos sin que
+                    //se comunique, entonces los países que tenía a cargo se
+                    //reparten
+                    if( equipo.isActivo() == false && equipo.getHoraUltimaNotificacionEnviada()!=null 
+                            && equipo.isPaisesRepartidosPorCaida()==false ){
+
+                        horaEnvioMensaje = equipo.getHoraUltimaNotificacionEnviada();                        
+                        horaActual = new Date();
+
+                        diferencia = (int) (horaActual.getTime()-horaEnvioMensaje.getTime())/1000;
+                        
+                        if(diferencia > 45){
+                            
+                            equipo.setComunicacionInicialExitosa(false);                        
+                            this.estadosEquipos.replace(entry.getKey(), equipo);
+                            
+                            //enviarle los países al primer equipo activo encontrado
+                            //el balanceo de cargas se realiza posteriormente si
+                            //es requerido
+                            Equipo equipoTemp;
+                            String equipoAEnviar = null;
+                            for (HashMap.Entry<String, Equipo> registro : this.estadosEquipos.entrySet()) {
+                                equipoTemp = registro.getValue();
+                                if (equipoTemp.isActivo() == true){
+                                    equipoAEnviar = registro.getKey();
+                                    break;
+                                }
+                            }
+                            
+                            if(equipoAEnviar != null){
+                            
+                                String ipEquipoRevision;
+                                Pais pais;
+                                //List<Pais> paisesAEnviar = new ArrayList<>();
+
+                                System.out.println("REDISTRIBUYENDO PAÍSES DEL "
+                                        + "EQUIPO CAÍDO "+equipoMonitoreado);
+
+                                for (HashMap.Entry<String, String> entrada : this.paisesEnEquipos.entrySet()) {
+
+                                    ipEquipoRevision = entrada.getValue();
+
+                                    if ( ipEquipoRevision.equals(equipoMonitoreado) ){
+
+                                        pais = this.conjuntoPaises.get( entrada.getKey() );
+
+                                        Mensaje mensaje = new Mensaje();
+                                        mensaje.setIpSender(this.ipServidor);
+                                        mensaje.setInstruccion(1);
+                                        mensaje.setPais(pais);                                    
+
+                                        SenderBroker sender = new SenderBroker(equipoAEnviar, 
+                                                this.puertoEquipos);
+                                        sender.enviarMensaje( mensaje );      
+                                        System.out.println("Enviado país a "
+                                                +pais.getNombre()+" a "+equipoAEnviar);
+                                    }
+
+                                }
+                                equipo.setPaisesRepartidosPorCaida(true);                        
+                                this.estadosEquipos.replace(entry.getKey(), equipo);
+                            }
+                        }
+
+                    }
                 }
             }  
             
@@ -623,12 +717,21 @@ public class ServidorBroker {
                         }
 
                     }else{
-                        System.out.println("No se puede balancear más en este momento");
+                        System.out.println("Todos los equipos ya se encuentran "
+                                + "con la misma carga de procesamiento");
                     }
                 
                     
                 }else{
-                    System.out.println("No se puede balancear más en este momento");
+                    
+                    if( cantidadEquiposActivos == 1 ){
+                        System.out.println("No se puede balancear más en este momen"
+                            + "to. Sólo se tiene un equipo de procesamiento");
+                    }else{
+                        System.out.println("No se puede balancear más en este momen"
+                            + "to. No se tienen equipos de procesamiento activos");
+                    }                    
+                   
                 }
                 
                 sem.release();
@@ -645,55 +748,6 @@ public class ServidorBroker {
         
         //la tarea se ejecuta cada t segundos
         timer.schedule(task, tiempoInicialEspera, tiempoPeriodicoEjecucion);
-    }
-    
-    //función que se encarga de enviar agentes a equipos para que estos sean
-    //procesados, consiguiendo balancear las cargas
-    //esta función se ejecuta periódicamente
-    public void distribuirPaisesEquipoCaido(){
-        
-        TimerTask task = new TimerTask() {
-
-            @Override
-            public void run() {
-                
-                    System.out.println("\nDISTRIBUCIÓN DE PAÍSES DE EQUIPO CAÍDO ACTIVADA");
-                    
-                    /*
-                    try {
-                        sem.acquire();
-                    } catch (InterruptedException ex) {
-                        System.out.println("Error al intentar activar semáforo");
-                        System.exit(1);
-                    }
-                    
-                    Equipo equipo;
-                    for (HashMap.Entry<String, Equipo> entry : notificacionesEquipos.entrySet()) {
-                        equipo = entry.getValue();
-                        if( equipo.isActivo()==true){
-                            //si al equipo se le envió una notificación y no la respondió
-                            //entonces distribuir los países que allí estaban
-                            if( equipo.isNotificacionReporteCargaEnviada()==true 
-                                    && equipo.isRespuestaEntregada()==false ){
-                                System.out.println("REPARTIENDO PAÍSES HUERFANOS");
-                            }
-                        }
-                    }
-                    
-                    sem.release();*/                
-            }
-          };
-
-        Timer timer = new Timer();
-
-        //tiempo (ms) que dura para ejecutarse cada vez
-        int tiempoPeriodicoEjecucion = 30000;
-        //tiempo (ms) que dura para ejecutarse la primera vez
-        int tiempoInicialEspera = 30000;
-
-        //la tarea se ejecuta cada t segundos
-        timer.schedule(task, tiempoInicialEspera, tiempoPeriodicoEjecucion);
-        
     }
     
     public void terminarEjecucionConErrores(String mensajeError){
@@ -801,7 +855,9 @@ public class ServidorBroker {
                         //añadir a la lista de países del broker
                         //los países del equipo que recién se comunica
                         this.paises.addAll(paisesInicio);
+                        
                         for(int i=0; i<paisesInicio.size(); i++){
+                            
                             if( this.paisesEnEquipos.get( paisesInicio.get(i).getNombre() )!=null ){
                                 //System.out.println("Error: se ha duplicado un país "
                                 //        + "en los equipos de procesamiento.");
@@ -810,8 +866,13 @@ public class ServidorBroker {
                                         + "en los equipos de procesamiento.");
                                 //System.exit(1);
                             }
+                            
                             this.paisesEnEquipos.put(paisesInicio.get(i).getNombre()
                                     , ipSender);
+                            
+                            this.conjuntoPaises.put(paisesInicio.get(i).getNombre()
+                                    ,paisesInicio.get(i));
+                            
                             System.out.println("Agregado a la lista del broker "
                                     + "el país "+paisesInicio.get(i).getNombre());
                         }
@@ -903,13 +964,20 @@ public class ServidorBroker {
                         System.out.println("Recibiendo confirmación de procesamiento de país "+pais.getNombre());
                         
                         String paisRecibido = pais.getNombre();
+                        ipSender = mensaje.getIpSender();
                         
                         this.sem.acquire();
                         
                         //eliminar país que se está ejecutando de la lista de
                         //países que se van a distribuir
-                        this.paisesPorDistribuir.remove(paisRecibido);
-                        this.paisesADistribuirEnEquipos.remove(pais.getPoblacion());
+                        if(this.paisesPorDistribuir.get(paisRecibido)!=null){
+                            this.paisesPorDistribuir.remove(paisRecibido);
+                        }
+                        if(this.paisesADistribuirEnEquipos.get(pais.getPoblacion())!=null){
+                            this.paisesADistribuirEnEquipos.remove(pais.getPoblacion());
+                        }
+                        //actualizar en qué equipo quedó ahora ese país
+                        this.paisesEnEquipos.replace(paisRecibido, ipSender);
                         
                         this.sem.release();
                         
@@ -969,13 +1037,21 @@ public class ServidorBroker {
                 
                 MensajeBroker mensaje = (MensajeBroker)objectInputStream.readObject();                
                 
-                String ipSender = null;                
+                String ipSender = mensaje.getIpSender();                
                 
                 switch(mensaje.getInstruccion()) {
 				
                     case 1: //recibiendo primera comunicación con un broker
                         
-                        System.out.println("Llega mensaje desde el otro broker");
+                        System.out.println("Mensaje inicial desde el broker "+socket);
+                        
+                        this.brokers = mensaje.getBrokers();
+                        this.equiposIniciales = mensaje.getEquipos();
+                        this.numeroBroker = mensaje.getNumeroBroker();
+                        
+                        System.out.println("Número de este broker: "+this.numeroBroker);
+                        System.out.println("Equipos iniciales: "+this.equiposIniciales);
+                        System.out.println("Brokers: "+this.brokers);
 					
 			break;
                 }

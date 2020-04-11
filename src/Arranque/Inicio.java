@@ -69,14 +69,16 @@ public class Inicio {
             /*System.out.println("desde "+3);
             System.out.println("hasta "+(3+numeroOtrosBrokers-1));*/
             
-            for (int i = 3; i < 3+numeroOtrosBrokers; i++) {
-                
-                ipSiguienteBroker = instruccionesConfiguracion.get(i);
-                
-                //equipos.put(ipSiguienteEquipo, 0L);
-                otrosBrokers.add(ipSiguienteBroker);
-                
-                System.out.println(ipSiguienteBroker);
+            if ( numeroOtrosBrokers > 0 ){
+                for (int i = 3; i < 3+numeroOtrosBrokers; i++) {
+
+                    ipSiguienteBroker = instruccionesConfiguracion.get(i);
+
+                    //equipos.put(ipSiguienteEquipo, 0L);
+                    otrosBrokers.add(ipSiguienteBroker);
+
+                    System.out.println(ipSiguienteBroker);
+                }
             }
             
             System.out.print("\n");

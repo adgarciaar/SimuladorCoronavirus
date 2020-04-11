@@ -5,6 +5,7 @@
  */
 package Entidades;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
@@ -13,17 +14,18 @@ import java.util.List;
  */
 public class MensajeBroker extends MensajeGeneral{
     
-    private List<String> brokers;    
-    private List<String> equipos;  
+    private LinkedHashMap<String, String> brokers;    
+    private List<String> equipos; 
+    private int numeroBroker;
 
     public MensajeBroker() {
     }
 
-    public List<String> getBrokers() {
+    public LinkedHashMap<String, String> getBrokers() {
         return brokers;
     }
 
-    public void setBrokers(List<String> brokers) {
+    public void setBrokers(LinkedHashMap<String, String> brokers) {
         this.brokers = brokers;
     }
 
@@ -33,6 +35,14 @@ public class MensajeBroker extends MensajeGeneral{
 
     public void setEquipos(List<String> equipos) {
         this.equipos = equipos;
+    }
+
+    public int getNumeroBroker() {
+        return numeroBroker;
+    }
+
+    public void setNumeroBroker(int numeroBroker) {
+        this.numeroBroker = numeroBroker;
     }
     
 }
