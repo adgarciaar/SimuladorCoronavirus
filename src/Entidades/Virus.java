@@ -1,6 +1,8 @@
 package Entidades;
 
-public class Virus {
+import java.io.Serializable;
+
+public class Virus implements Serializable{
 	double tasatransmicion;
 	double tasaMortalidad;
 	

@@ -5,8 +5,10 @@
  */
 package ModeloPropagacion;
 
+import Entidades.EstadoEnum;
 import Entidades.Mensaje;
 import Entidades.Pais;
+import Entidades.Persona;
 import EquipoProcesamiento.SenderEquipo;
 
 import java.util.Map;
@@ -27,13 +29,76 @@ public class EjecutorPropagacion extends Thread {
     private String ipServidorEquipo;
     private String ipBrokerActual;
     private int puerto;
+    private Persona[][] habitantes;
+    private int columns;
+	private int rows;
 
     public EjecutorPropagacion() {
     }
 
     public EjecutorPropagacion(Pais pais) {
-        this.pais = pais;
+    	this.pais = pais;
+    	int size = (int) Math.sqrt(this.pais.getPoblacion());
+        
+        this.columns = size+2;
+		this.rows = size+2;
+        this.habitantes = new Persona[this.rows][this.columns];
+        
+        for (int x = 0; x < rows ; x++) {
+			for (int y = 0; y < columns ; y++) {
+				
+				if(x==0||x==rows-1||y==0||y==columns-1){
+					this.habitantes[x][y] = new Persona();
+				}
+				else {
+				Random r = new Random();
+				boolean isolated = false, vulnerable = false;
+				
+				double rand1 = r.nextInt(100); 
+				double rand2 = r.nextInt(100); 
+				if( rand1 < this.pais.getTasaVulnerabilidad() ) {
+					vulnerable = true;
+				}
+				
+				if( rand2 < this.pais.getTasaAislamiento() ) {
+					isolated = true;
+				}
+				
+				this.habitantes[x][y] = new Persona(isolated,vulnerable);
+				}
+			
+			}
+		}	
+		
+		int occupiedSpots = 0;
+		Random random = new Random();
+		
+
+
+		while (occupiedSpots < this.pais.getContagiadosCount()) {
+			int x = random.nextInt(habitantes.length-2);
+			int y = random.nextInt(habitantes[x].length-2);
+			if (habitantes[x][y].estado == EstadoEnum.SANO) {
+				habitantes[x][y].estado = EstadoEnum.CONTAGIADO;
+				occupiedSpots++;
+			}
+		}
     }
+    
+    public  void addEnfermos(int cant) {
+		  
+		
+		for (int i = 0; i < cant; i++) {
+			Random random = new Random();
+			int x = random.nextInt(habitantes.length-2);
+			int y = random.nextInt(habitantes[x].length-2);
+			if (habitantes[x][y].estado == EstadoEnum.SANO) {
+				habitantes[x][y].estado = EstadoEnum.CONTAGIADO;
+				this.pais.addEnfermo();
+			}
+		}	
+			
+	}
 
     public Pais getPais() {
         return pais;
@@ -70,12 +135,13 @@ public class EjecutorPropagacion extends Thread {
 	//Funcion encargada de enviar infectados por medio del broker
     public void infectarOtrosPaises()
     {
-    	if (this.pais.getContagiadosCount()<(this.pais.getPoblacion()*0.001)) {
+    	if (this.pais.getContagiadosCount()<(this.pais.getPoblacion()*0.0001)) {
+    		System.out.println("infectar");
     		for (Map.Entry<String, Integer> entry : this.pais.getPaises().entrySet()) {
     			Random r = new Random();
     			double rand = r.nextInt(100) + r.nextDouble();
     			if( rand < 20) { 
-    				
+    				System.out.println("envio infectados");
     				//Creacion del mensaje
     				Mensaje nuevoMensaje = new Mensaje();
     				nuevoMensaje.setIpSender(this.ipServidorEquipo);
@@ -116,6 +182,63 @@ public class EjecutorPropagacion extends Thread {
         }
     }
     
+    public  void  generate() {
+		
+
+		Persona[][] next = habitantes;
+
+		for (int x = 1; x < rows - 1; x++) {
+			for (int y = 1; y < columns - 1; y++) {
+
+				int sickNeighbors = 0;
+				for (int i = -1; i <= 1; i++) {
+					for (int j = -1; j <= 1; j++) {
+						if (habitantes[x + i][y + j] != null) {
+							EstadoEnum estado = habitantes[x + i][y + j].estado;
+
+							if (estado == EstadoEnum.CONTAGIADO && x + i != x && y + j != y) {
+								sickNeighbors++;
+							}
+						}
+					}
+
+				}
+
+				if ((habitantes[x][y].estado == EstadoEnum.SANO) && (sickNeighbors > 0 && sickNeighbors < 6)) {
+					
+					if(habitantes[x][y].isolated == true) {
+					next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicion()/2);
+					}else
+					next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicion());
+				}
+				if ((habitantes[x][y].estado == EstadoEnum.SANO) && (sickNeighbors > 6) ) {
+					if(habitantes[x][y].isolated == true) {
+					next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicion());
+					}else
+					next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicion()*2);
+				}
+				else if ((habitantes[x][y].estado == EstadoEnum.CONTAGIADO) ) {
+					if(habitantes[x][y].vulnerable == true) {
+						next[x][y].estado = this.pais.muerte(this.pais.getVirus().getTasaMortalidad());
+					}
+				}
+			}
+			
+		}
+
+		// Next is now our board
+		habitantes = next;
+		
+		try {
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+	}
+    
     //función para ejecutar el modelo de automátas celulares
     @Override
     public void run() {
@@ -123,7 +246,7 @@ public class EjecutorPropagacion extends Thread {
     	
     	
         while(keepRunning()) {   
-        	pais.generate();
+        	generate();
         	System.out.println("pais: "+this.pais.getNombre()+" Enfermos -> "+this.pais.getContagiadosCount()+"  Muertos -> "+this.pais.getMuertosCount());
         	
         	infectarOtrosPaises();
@@ -144,7 +267,8 @@ public class EjecutorPropagacion extends Thread {
     }
 
 	public void InfectarPais(int infectados) {
-		this.pais.addEnfermos(infectados);
+		System.err.println("entro infeccion");
+		addEnfermos(infectados);
 		
 	}       
     

@@ -1,9 +1,11 @@
 package Entidades;
 
-public class Persona {
-	EstadoEnum estado;
-	boolean isolated;
-	boolean vulnerable;
+import java.io.Serializable;
+
+public class Persona implements Serializable{
+	public EstadoEnum estado;
+	public boolean isolated;
+	public boolean vulnerable;
 
 	public Persona(boolean isolated,boolean vulnerable) {
 		this.estado = EstadoEnum.SANO;

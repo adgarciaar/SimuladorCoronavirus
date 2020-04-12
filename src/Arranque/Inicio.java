@@ -181,7 +181,7 @@ public class Inicio {
                     System.out.println(Arrays.toString(datosSiguientePais));
                     fin++;
                 }
-                fin++;
+                
                 arrayLinea = instruccionesConfiguracion.get(fin).split("\t");
                 int numeroConexiones = Integer.parseInt(arrayLinea[1]);
             	String [] datosSiguienteConexion;
@@ -215,6 +215,10 @@ public class Inicio {
             
             System.out.print("\n");
             List<Pais> paisesList = new ArrayList(paises.values());
+            for (int i = 0; i < paisesList.size(); i++) {
+            	System.out.println(paisesList.get(i).getNombre()+", conexiones: ");
+            	paisesList.get(i).printpaises();
+            }
             
             ServidorEquipo servidor = new ServidorEquipo(paisesList, puerto);
             //Linea de prueba

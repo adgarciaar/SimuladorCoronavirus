@@ -65,10 +65,11 @@ public class SenderEquipo{
 
         System.out.println("Enviando mensaje al equipo");
         try {
+        	System.out.println("entro enviar mensaje");
             objectOutputStream.writeObject(mensaje); //enviar objeto
         } catch (IOException ex) {
-            System.out.println("Error enviando objeto por socket");
-            System.exit(1);
+            System.out.println("Error enviando objeto por socket "+ ex);
+            //System.exit(1);
         }
 
         System.out.println("Cerrando socket");

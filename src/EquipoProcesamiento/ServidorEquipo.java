@@ -257,13 +257,15 @@ public class ServidorEquipo {
                          
                         System.out.println("Recibiendo mensaje inicial del broker");
                         
-                        if(this.hilos.isEmpty() == true){
-                            this.ejecutarModeloPaisesPrecargados();
-                        }
+                        
                         //this.activarMonitor();
                          
                         ipSender = mensaje.getIpSender();
                         this.ipBrokerActual = ipSender;
+                        
+                        if(this.hilos.isEmpty() == true){
+                            this.ejecutarModeloPaisesPrecargados();
+                        }
                         
                         nuevoMensaje = new Mensaje();
                         nuevoMensaje.setIpSender(this.ipServidor);
