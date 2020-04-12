@@ -33,6 +33,7 @@ public class ServidorEquipo {
     private String ipServidor; //guarda la ip de la máquina en que se ejecuta
     private int puerto; //puerto con el que se comunica esta máquina
     private volatile List<Pais> paises; //lista de países que se están ejecutando en este equipo  
+    private String ipBrokerActual;//guarda la ip del broker con el que s e esta comunicando en el momento
     
     //mapa para guardar las duplas <Nombre país, Hilo de ejecución de ese país>
     private volatile HashMap<String, EjecutorPropagacion> hilos;
@@ -44,13 +45,13 @@ public class ServidorEquipo {
     //constructor de la clase, se le pasan los países precargados en el archivo
     //de configuración inicial y el puerto por el que se va a comunicar
     public ServidorEquipo(List<Pais> paises, int puerto){
-        
         this.paises = new ArrayList<>(paises);
         this.puerto = puerto;
         
         //se inicializa el semáforo con 1, para que sólo una función pueda
         //acceder a la vez a las variables de la clase
-        sem = new Semaphore(1); 
+        sem = new Semaphore(1);  
+        
         //hilos = new ArrayList<>(); 
         hilos = new HashMap<>(); 
         
@@ -79,16 +80,21 @@ public class ServidorEquipo {
             Logger.getLogger(ServidorEquipo.class.getName()).log(Level.SEVERE, null, ex);
         }
         
+        System.out.println("salio inicio semaforo"); 
+        
         for (Pais pais : this.paises) {
 
             System.out.println("Recibido localmente el país "+pais.getNombre()+" con "+pais.getPoblacion()+" habitantes");
 
             // create a new thread object 
-            EjecutorPropagacion t = new EjecutorPropagacion(pais);
+            EjecutorPropagacion ejecutor = new EjecutorPropagacion(pais);
+            ejecutor.setIpServidorEquipo(this.ipServidor);
+            ejecutor.setIpBrokerActual(this.ipBrokerActual);
+            ejecutor.setPuerto(this.puerto);
             //hilos.add(t);
-            hilos.put(pais.getNombre(), t);
+            hilos.put(pais.getNombre(), ejecutor);
 
-            t.start(); 
+            ejecutor.start(); 
             System.out.println("Iniciado nuevo hilo para procesar este país"); 
         }
         
@@ -218,14 +224,17 @@ public class ServidorEquipo {
                         System.out.println("Recibido el país "+pais.getNombre()+" con "+pais.getPoblacion()+" habitantes");                        
 
                         // create a new thread object 
-                        EjecutorPropagacion t = new EjecutorPropagacion(pais);
+                        EjecutorPropagacion ejecutorP = new EjecutorPropagacion(pais);
                         //hilos.add(t);
-                        hilos.put(pais.getNombre(), t);
+                        ejecutorP.setIpServidorEquipo(this.ipServidor);
+                        ejecutorP.setIpBrokerActual(this.ipBrokerActual);
+                        ejecutorP.setPuerto(this.puerto);
                         
+                        hilos.put(pais.getNombre(), ejecutorP);
                         this.sem.release(); 
 
                         // Invoking the start() method                         
-                        t.start(); 
+                        ejecutorP.start(); 
                         System.out.println("Iniciado nuevo hilo para procesar este país"); 
                         
                         //comunicar al broker que el país se recibió
@@ -254,6 +263,7 @@ public class ServidorEquipo {
                         //this.activarMonitor();
                          
                         ipSender = mensaje.getIpSender();
+                        this.ipBrokerActual = ipSender;
                         
                         nuevoMensaje = new Mensaje();
                         nuevoMensaje.setIpSender(this.ipServidor);
@@ -380,6 +390,15 @@ public class ServidorEquipo {
                         System.exit(1);
                         
                         break; 
+                    case 5:
+                    	
+                    	this.sem.acquire();
+                    	
+                    	
+                    	
+                    	this.sem.release();
+                    	
+                    	break;
                 }
                 
             } 

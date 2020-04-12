@@ -1,5 +1,9 @@
 broker	no
 puerto	7777
+virus	0.5	0.2
 paises	2
-Estados Unidos	322000000
-Suecia	10327600
+0	Estados Unidos	10000000	10	10	3000
+1	Suecia	100000	10	10	0
+1 Suecia	100000	10	10	0
+Conexiones	1 
+0	1	3

@@ -8,6 +8,8 @@ package Arranque;
 import EquipoProcesamiento.ServidorEquipo;
 import Broker.ServidorBroker;
 import Entidades.Pais;
+import Entidades.Virus;
+
 import java.io.File;  // Import the File class
 import java.io.FileNotFoundException;  // Import this class to handle errors
 import java.util.ArrayList;
@@ -30,7 +32,7 @@ public class Inicio {
         List<String> instruccionesConfiguracion = new ArrayList<>();
                 
         try {
-            File myObj = new File("src/Configuracion/configuracionBroker.txt");
+            File myObj = new File("src/Configuracion/configuracionEquipo1.txt");
             try (Scanner myReader = new Scanner(myObj)) {
                 while (myReader.hasNextLine()) {
                     String data = myReader.nextLine();
@@ -136,27 +138,72 @@ public class Inicio {
                 puerto = Integer.parseInt( arrayLinea[1] );
 
                 paises = new ArrayList<>();
+                
 
                 arrayLinea = instruccionesConfiguracion.get(2).split("\t");
+                
+                double tasatransmicion = Double.parseDouble(arrayLinea[1]);
+                double tasaMortalidad = Double.parseDouble(arrayLinea[2]);
+                
+                Virus virus = new Virus(tasatransmicion,tasaMortalidad);
+                
+                arrayLinea = instruccionesConfiguracion.get(3).split("\t");
+                
                 int numeroPaises = Integer.parseInt(arrayLinea[1]);
+                
 
                 System.out.println("Número de países en este precargados en este equipo: "+numeroPaises+"\n");
 
                 Pais pais;
                 String[] datosSiguientePais;
-
-                for (int i = 3; i < 3+numeroPaises; i++) {
+                int fin = 4 ;
+                for (int i = 4; i < 4+numeroPaises; i++) {
+                	
 
                     datosSiguientePais = instruccionesConfiguracion.get(i).split("\t");
+                    
+                    int id = Integer.parseInt(datosSiguientePais[0]);
+                    String nombre = datosSiguientePais[1];
+                    int poblacion = Integer.parseInt(datosSiguientePais[2]);
+                    double tasaVulnerabilidad = Double.parseDouble(datosSiguientePais[3]);
+                    double tasaAislamiento = Double.parseDouble(datosSiguientePais[4]);
+                    int contagiadosCount = Integer.parseInt(datosSiguientePais[5]);
+                    
+                    pais = new Pais(id,nombre,poblacion,tasaVulnerabilidad,tasaAislamiento,contagiadosCount,virus);
 
-                    pais = new Pais();
+                    /*pais = new Pais();
                     pais.setNombre( datosSiguientePais[0] );
-                    pais.setPoblacion( Integer.parseInt(datosSiguientePais[1]) );
+                    pais.setPoblacion( Integer.parseInt(datosSiguientePais[1]) );*/
 
                     paises.add(pais);
 
                     System.out.println(Arrays.toString(datosSiguientePais));
+                    fin++;
                 }
+                fin++;
+                arrayLinea = instruccionesConfiguracion.get(fin).split("\t");
+                int numeroConexiones = Integer.parseInt(arrayLinea[1]);
+            	String [] datosSiguienteConexion;
+            	fin++;
+            	for (int j = fin; j < fin+numeroConexiones; j++) {
+            		datosSiguienteConexion = instruccionesConfiguracion.get(j).split("\t");
+            		int pais1 = Integer.parseInt(datosSiguienteConexion[0]);
+            		int pais2 = Integer.parseInt(datosSiguienteConexion[1]);
+            		int conexiones = Integer.parseInt(datosSiguienteConexion[2]);
+            		
+            		
+            		paises.get(pais1).addPais(paises.get(pais2),conexiones);
+            		paises.get(pais2).addPais(paises.get(pais1),conexiones);
+
+            		
+				}
+            
+            	for (int i = 0; i < paises.size(); i++) {
+            		System.out.println(paises.get(i).getNombre()+", conexiones: ");
+            		paises.get(i).printpaises();
+				}
+                
+                
             }catch (Exception e) {
             /* This is a generic Exception handler which means it can handle
              * all the exceptions. This will execute if the exception is not
@@ -168,10 +215,12 @@ public class Inicio {
             System.out.print("\n");
             
             ServidorEquipo servidor = new ServidorEquipo(paises, puerto);
+            //Linea de prueba
+            servidor.ejecutarModeloPaisesPrecargados();
             
             //iniciar el servidor del equipo de procesamiento
             //el cual se queda esperando por la comunicación inicial de un broker
-            servidor.iniciarEscuchaServidor();
+            //servidor.iniciarEscuchaServidor();
         }
         
     }

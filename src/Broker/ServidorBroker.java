@@ -7,6 +7,7 @@ package Broker;
 
 import Entidades.NotificacionEquipo;
 import Entidades.Pais;
+import EquipoProcesamiento.SenderEquipo;
 import Entidades.Mensaje;
 import Entidades.MensajeBroker;
 import Entidades.NotificacionBroker;
@@ -1042,6 +1043,32 @@ public class ServidorBroker {
                         this.sem.release();
                         
                         break;
+                        
+                    case 5://recibe infectados de un pais
+                    	
+                    	System.out.println("Recibiendo infectados desde "+pais.getNombre());
+                    	ipSender = mensaje.getIpSender();
+                    	
+                    	 this.sem.acquire();
+                    	 
+                    	 //Creacion del mensaje
+         				 Mensaje mensajeContagio = new Mensaje();
+         				 mensajeContagio.setIpSender(this.ipServidor);
+         				 mensajeContagio.setInstruccion(5);
+         				 mensajeContagio.setPais(pais);
+         				 mensajeContagio.setTexto(mensaje.getTexto()); 
+         				 
+         				 String ipEquipoPaisContagiar = this.paisesEnEquipos.get(mensaje.getTexto());
+         				
+         				 //Creacion sender y envio de mensaje
+         				 SenderEquipo senderContagio = new SenderEquipo(ipEquipoPaisContagiar, this.puertoEquipos);
+         				 senderContagio.enviarMensaje( mensajeContagio );  
+         				 
+         				System.out.println("Reenviados infectados desde "+pais.getNombre()+" en "+ipSender +" al pais "+mensaje.getTexto()+" en "+ipEquipoPaisContagiar);
+                    	 
+                    	 this.sem.release();
+                    	
+                    	break;
                    
                 }
                
