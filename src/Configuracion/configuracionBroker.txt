@@ -1,6 +1,6 @@
 broker	si
 puerto	7777	7778
-brokers	0
-equipos	2
+brokers	1
 192.168.0.7
+equipos	1
 192.168.0.10

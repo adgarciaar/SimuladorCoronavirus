@@ -13,7 +13,7 @@ import java.util.Date;
  */
 
 //clase que guarda los datos de estado general de cada equipo de procesamiento 
-public class Equipo {
+public class NotificacionEquipo {
     
     private boolean activo;
     private boolean notificacionReporteCargaEnviada;
@@ -22,7 +22,7 @@ public class Equipo {
     private boolean comunicacionInicialExitosa;
     private boolean paisesRepartidosPorCaida;
 
-    public Equipo() {
+    public NotificacionEquipo() {
     }    
 
     public boolean isActivo() {

@@ -110,6 +110,7 @@ public class Inicio {
                 
                 ServidorBroker servidorBroker = new ServidorBroker( puertoEquipos, 
                         puertoBrokers, equipos, otrosBrokers);
+                servidorBroker.iniciarEscuchaServidorBrokers();
                 servidorBroker.iniciarEscuchaServidor();
                 servidorBroker.establecerComunicacionInicialConEquipos();            
                 servidorBroker.solicitarCargaEquipos();   
@@ -120,7 +121,7 @@ public class Inicio {
                 
                 ServidorBroker servidorBroker = new ServidorBroker( puertoEquipos, 
                         puertoBrokers);
-                servidorBroker.iniciarEscuchaBrokers();
+                servidorBroker.iniciarEscuchaServidorBrokers();
             }            
             
         //si no es un broker

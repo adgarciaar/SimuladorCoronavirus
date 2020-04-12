@@ -248,7 +248,9 @@ public class ServidorEquipo {
                          
                         System.out.println("Recibiendo mensaje inicial del broker");
                         
-                        this.ejecutarModeloPaisesPrecargados();
+                        if(this.hilos.isEmpty() == true){
+                            this.ejecutarModeloPaisesPrecargados();
+                        }
                         //this.activarMonitor();
                          
                         ipSender = mensaje.getIpSender();

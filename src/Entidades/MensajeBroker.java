@@ -5,6 +5,7 @@
  */
 package Entidades;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -14,8 +15,12 @@ import java.util.List;
  */
 public class MensajeBroker extends MensajeGeneral{
     
+    //instruccion
+    //1 para comunicación inicial entre broker que inicia el sistema y los demás
+    //2 para cada broker comunicar su estado a los demás
+    
     private LinkedHashMap<String, String> brokers;    
-    private List<String> equipos; 
+    private volatile HashMap<String, String> equiposPorBroker; 
     private int numeroBroker;
 
     public MensajeBroker() {
@@ -29,12 +34,12 @@ public class MensajeBroker extends MensajeGeneral{
         this.brokers = brokers;
     }
 
-    public List<String> getEquipos() {
-        return equipos;
+    public HashMap<String, String> getEquiposPorBroker() {
+        return equiposPorBroker;
     }
 
-    public void setEquipos(List<String> equipos) {
-        this.equipos = equipos;
+    public void setEquiposPorBroker(HashMap<String, String> equiposPorBroker) {
+        this.equiposPorBroker = equiposPorBroker;
     }
 
     public int getNumeroBroker() {
