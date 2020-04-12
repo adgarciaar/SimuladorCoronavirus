@@ -1057,6 +1057,7 @@ public class ServidorBroker {
          				 mensajeContagio.setInstruccion(5);
          				 mensajeContagio.setPais(pais);
          				 mensajeContagio.setTexto(mensaje.getTexto()); 
+         				 mensajeContagio.setNumeroPaisesProcesando(mensaje.getNumeroPaisesProcesando());
          				 
          				 String ipEquipoPaisContagiar = this.paisesEnEquipos.get(mensaje.getTexto());
          				

@@ -82,6 +82,7 @@ public class EjecutorPropagacion extends Thread {
     				nuevoMensaje.setInstruccion(5);
     				nuevoMensaje.setPais(this.pais);
     				nuevoMensaje.setTexto(entry.getKey()); 
+    				nuevoMensaje.setNumeroPaisesProcesando(10*entry.getValue());
     				
     				//Creacion sender y envio de mensaje
     				SenderEquipo sender = new SenderEquipo(this.ipBrokerActual, this.puerto);
@@ -109,7 +110,7 @@ public class EjecutorPropagacion extends Thread {
     //función para pausar la ejecución del hilo
     public void pausar(){
         try {
-            Thread.sleep(1000);
+            Thread.sleep(3000);
         } catch (InterruptedException ex) {
             Logger.getLogger(EjecutorPropagacion.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -140,6 +141,11 @@ public class EjecutorPropagacion extends Thread {
             }*/
             
         }
-    }       
+    }
+
+	public void InfectarPais(int infectados) {
+		this.pais.addEnfermos(infectados);
+		
+	}       
     
 }

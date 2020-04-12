@@ -391,13 +391,20 @@ public class ServidorEquipo {
                         
                         break; 
                     case 5:
+                    	System.out.println("Recibiendo infectados desde pais: " + mensaje.getPais()+" a: "+mensaje.getTexto() );
+                    	ipSender = mensaje.getIpSender();
                     	
                     	this.sem.acquire();
                     	
-                    	
+                    	String paisAInfectar = mensaje.getTexto();
+                    	EjecutorPropagacion ejecutorInfeccion = this.hilos.get(paisAInfectar);
+                    	ejecutorInfeccion.pausar();
+                    	int infectados =  mensaje.getNumeroPaisesProcesando();
+                    	ejecutorInfeccion.InfectarPais(infectados);
                     	
                     	this.sem.release();
                     	
+                    	System.out.println("Infectados recibidos");
                     	break;
                 }
                 

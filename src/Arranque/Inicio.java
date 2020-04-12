@@ -14,6 +14,7 @@ import java.io.File;  // Import the File class
 import java.io.FileNotFoundException;  // Import this class to handle errors
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner; // Import the Scanner class to read text files
 
@@ -129,7 +130,7 @@ public class Inicio {
         //si no es un broker
         }else{
             
-            List<Pais> paises = null;
+        	HashMap<String, Pais> paises = null;
             int puerto = 0;
             
             try{
@@ -137,7 +138,7 @@ public class Inicio {
                 String[] arrayLinea = instruccionesConfiguracion.get(1).split("\t");
                 puerto = Integer.parseInt( arrayLinea[1] );
 
-                paises = new ArrayList<>();
+                paises = new HashMap<>();
                 
 
                 arrayLinea = instruccionesConfiguracion.get(2).split("\t");
@@ -175,7 +176,7 @@ public class Inicio {
                     pais.setNombre( datosSiguientePais[0] );
                     pais.setPoblacion( Integer.parseInt(datosSiguientePais[1]) );*/
 
-                    paises.add(pais);
+                    paises.put(nombre,pais);
 
                     System.out.println(Arrays.toString(datosSiguientePais));
                     fin++;
@@ -187,21 +188,21 @@ public class Inicio {
             	fin++;
             	for (int j = fin; j < fin+numeroConexiones; j++) {
             		datosSiguienteConexion = instruccionesConfiguracion.get(j).split("\t");
-            		int pais1 = Integer.parseInt(datosSiguienteConexion[0]);
-            		int pais2 = Integer.parseInt(datosSiguienteConexion[1]);
+            		String pais1 = datosSiguienteConexion[0];
+            		String pais2 = datosSiguienteConexion[1];
             		int conexiones = Integer.parseInt(datosSiguienteConexion[2]);
             		
             		
-            		paises.get(pais1).addPais(paises.get(pais2),conexiones);
-            		paises.get(pais2).addPais(paises.get(pais1),conexiones);
+            		paises.get(pais1).addPais(pais2,conexiones);
+            		paises.get(pais2).addPais(pais1,conexiones);
 
             		
 				}
             
-            	for (int i = 0; i < paises.size(); i++) {
+            	/*for (int i = 0; i < paises.size(); i++) {
             		System.out.println(paises.get(i).getNombre()+", conexiones: ");
             		paises.get(i).printpaises();
-				}
+				}*/
                 
                 
             }catch (Exception e) {
@@ -213,14 +214,15 @@ public class Inicio {
             } 
             
             System.out.print("\n");
+            List<Pais> paisesList = new ArrayList(paises.values());
             
-            ServidorEquipo servidor = new ServidorEquipo(paises, puerto);
+            ServidorEquipo servidor = new ServidorEquipo(paisesList, puerto);
             //Linea de prueba
-            servidor.ejecutarModeloPaisesPrecargados();
+            //servidor.ejecutarModeloPaisesPrecargados();
             
             //iniciar el servidor del equipo de procesamiento
             //el cual se queda esperando por la comunicación inicial de un broker
-            //servidor.iniciarEscuchaServidor();
+            servidor.iniciarEscuchaServidor();
         }
         
     }

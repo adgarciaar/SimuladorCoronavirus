@@ -6,4 +6,4 @@ paises	2
 1	Suecia	100000	10	10	0
 1 Suecia	100000	10	10	0
 Conexiones	1 
-0	1	3
+Estados Unidos	Suecia	3
