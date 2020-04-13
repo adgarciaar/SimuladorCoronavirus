@@ -73,8 +73,6 @@ public class EjecutorPropagacion extends Thread {
 		
 	int occupiedSpots = 0;
         Random random = new Random();
-		
-
 
         while (occupiedSpots < this.pais.getContagiadosCount()) {
             int x = random.nextInt(habitantes.length-2);
@@ -133,34 +131,34 @@ public class EjecutorPropagacion extends Thread {
     }
 
 	//Funcion encargada de enviar infectados por medio del broker
-    public void infectarOtrosPaises(){
-        
-    	if (this.band == false && this.pais.getContagiadosCount()>(this.pais.getPoblacion()*0.01)) {
+    public void infectarOtrosPaises() {
+
+        if (this.band == false && this.pais.getContagiadosCount() > (this.pais.getPoblacion() * 0.01)) {
             System.out.println("infectar");
             for (Map.Entry<String, Integer> entry : this.pais.getPaises().entrySet()) {
-    		Random r = new Random();
-    		double rand = r.nextInt(100) + r.nextDouble();
-    		if( rand < 20) { 
-                    System.out.println("envio infectados");
-                    //Creación del mensaje
-                    Mensaje nuevoMensaje = new Mensaje();
-                    nuevoMensaje.setIpSender(this.ipServidorEquipo);
-                    nuevoMensaje.setInstruccion(5);
-                    nuevoMensaje.setPais(this.pais);
-                    nuevoMensaje.setTexto(entry.getKey()); 
-                    nuevoMensaje.setNumeroPaisesProcesando(10*entry.getValue());
-    				
-                    //Creacion sender y envio de mensaje
-                    SenderEquipo sender = new SenderEquipo(this.ipBrokerActual, this.puerto);
-                    sender.enviarMensaje( nuevoMensaje );   
-                                        
-                    System.out.println("Enviado infectados desde pais: "
-                            +this.pais.getNombre()+" al pais: "+entry.getKey());
-    				//entry.getKey().addEnfermos(10*entry.getValue());
-    		}
+                Random r = new Random();
+                double rand = r.nextInt(100) + r.nextDouble();
+                //if( rand < 20) { 
+                System.out.println("envio infectados");
+                //Creación del mensaje
+                Mensaje nuevoMensaje = new Mensaje();
+                nuevoMensaje.setIpSender(this.ipServidorEquipo);
+                nuevoMensaje.setInstruccion(5);
+                nuevoMensaje.setPais(this.pais);
+                nuevoMensaje.setTexto(entry.getKey());
+                nuevoMensaje.setNumeroPaisesProcesando(10 * entry.getValue());
+
+                //Creacion sender y envio de mensaje
+                SenderEquipo sender = new SenderEquipo(this.ipBrokerActual, this.puerto);
+                sender.enviarMensaje(nuevoMensaje);
+
+                System.out.println("Enviado infectados desde pais: "
+                        + this.pais.getNombre() + " al pais: " + entry.getKey());
+                //entry.getKey().addEnfermos(10*entry.getValue());
+                //}
             }
             this.band = true;
-	}
+        }
     }
     
     //función para detener la ejecución del hilo

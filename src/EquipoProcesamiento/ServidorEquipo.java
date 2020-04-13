@@ -401,7 +401,7 @@ public class ServidorEquipo {
                     	String paisAInfectar = mensaje.getTexto();
                     	EjecutorPropagacion ejecutorInfeccion = this.hilos.get(paisAInfectar);
                     	ejecutorInfeccion.pausar();
-                    	int infectados =  mensaje.getNumeroPaisesProcesando();
+                    	int infectados = mensaje.getNumeroPaisesProcesando();
                     	ejecutorInfeccion.InfectarPais(infectados);
                     	
                     	this.sem.release();
