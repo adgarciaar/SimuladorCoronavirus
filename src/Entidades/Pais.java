@@ -46,6 +46,7 @@ public class Pais implements Serializable {
         this.virus = virus;
     }
 
+    //Función encargada de definir si un enfermo muere
     public EstadoEnum muerte(double prob) {
         Random r = new Random();
         double rand = r.nextInt(100) + r.nextDouble();
@@ -58,6 +59,7 @@ public class Pais implements Serializable {
         }
     }
 
+    //Función encargada de definir si una persona se contagia
     public EstadoEnum contagio(double prob) {
         Random r = new Random();
         double rand = r.nextInt(100) + r.nextDouble();
@@ -178,7 +180,6 @@ public class Pais implements Serializable {
 
     public void addEnfermo() {
         this.contagiadosCount++;
-        //System.out.println("Contagiado+1 en "+this.nombre);
     }
 
 }

@@ -29,6 +29,7 @@ public class EjecutorPropagacion extends Thread {
     private String ipServidorEquipo;
     private String ipBrokerActual;
     private int puerto;
+    //variables para automata
     private Persona[][] habitantes;
     private int columns;
     private int rows;
@@ -81,21 +82,22 @@ public class EjecutorPropagacion extends Thread {
                 habitantes[x][y].estado = EstadoEnum.CONTAGIADO;
                 occupiedSpots++;
             }
-	}
+        }
     }
     
+    //Función encargada de enfermar n habitantes
     public  void addEnfermos(int cant) {		  
-		
-	for (int i = 0; i < cant; i++) {
+		int cantEnfermos = 0;
+    	while (cantEnfermos < cant) {
             Random random = new Random();
             int x = random.nextInt(habitantes.length-2);
             int y = random.nextInt(habitantes[x].length-2);
             if (habitantes[x][y].estado == EstadoEnum.SANO) {
-		habitantes[x][y].estado = EstadoEnum.CONTAGIADO;
-		this.pais.addEnfermo();
+            	habitantes[x][y].estado = EstadoEnum.CONTAGIADO;
+            	this.pais.addEnfermo();
             }
         }	
-			
+    	cant++;		
     }
 
     public Pais getPais() {
@@ -181,6 +183,8 @@ public class EjecutorPropagacion extends Thread {
         }
     }
     
+    
+    //Función encargada de ejecutar las reglas para el automata
     public  void  generate() {		
 
 	Persona[][] next = habitantes;
@@ -200,7 +204,8 @@ public class EjecutorPropagacion extends Thread {
                         }
                     }
                 }
-
+                
+                //reglas de propagación
                 if ((habitantes[x][y].estado == EstadoEnum.SANO) && (sickNeighbors > 0 && sickNeighbors < 6)) {
 
                     if (habitantes[x][y].isolated == true) {
@@ -230,7 +235,6 @@ public class EjecutorPropagacion extends Thread {
         try {
             Thread.sleep(100);
         } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 		
