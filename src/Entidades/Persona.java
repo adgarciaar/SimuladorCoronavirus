@@ -2,6 +2,7 @@ package Entidades;
 
 import java.io.Serializable;
 
+//tiene los datos de una persona (habitante de un país) requeridos para la infección
 public class Persona implements Serializable{
 	public EstadoEnum estado;
 	public boolean isolated;

@@ -110,7 +110,7 @@ public class ServidorBroker {
             this.brokers.put(otrosBrokers.get(j), "Esperando");
         }
         
-        this.repartirEquiposPorBrokers(equipos);        
+        this.repartirEquiposPorBrokers(equipos, otrosBrokers);        
         
         this.inicializarEquiposBroker(equipos);
         
@@ -118,10 +118,12 @@ public class ServidorBroker {
        
     }
     
+    //constructor secundario de la clase
     public ServidorBroker(int puertoEquipos, int puertoBrokers) {
         this.inicializarBroker(puertoEquipos, puertoBrokers);
     }
     
+    //inicializa las variables más importantes de la clase
     public void inicializarBroker(int puertoEquipos, int puertoBrokers){
         //se consigue la ip de la máquina en que se está ejecutando esta función
         InetAddress inetAddress = null;
@@ -158,6 +160,8 @@ public class ServidorBroker {
         this.ordenBrokerAnillo = new HashMap();
     }
     
+    //inicializa las variables para manejar los equipos que le corresponde
+    //manejar al broker
     public void inicializarEquiposBroker(List<String> equipos){
         
         String ipEquipo;
@@ -194,30 +198,9 @@ public class ServidorBroker {
         
     }
     
-    public void repartirEquiposPorBrokers( List<String> equipos ){
-        
-        /*if( equipos.size() > this.brokers.size() ){
-            
-            int equiposPorBroker = (int) Math.floor( equipos.size()/this.brokers.size() );
-            int equiposUltimoBroker = 0;
-            if( equiposPorBroker*this.brokers.size() < equipos.size() ){
-                equiposUltimoBroker = equipos.size() - ( equiposPorBroker*this.brokers.size() );
-            }
-            
-            int i = equipos.size();
-            while( i > 0 ){
-                
-            }
-            
-        }else{
-            if( equipos.size() < this.brokers.size() ){
-                
-            }else{
-                //un equipo por broker
-            }
-        }
-        
-        int cantidadEquiposPorBroker = equipos.size()/this.brokers.size();*/
+    //de acuerdo con el número de equipos y brokers, los equipos se reparten
+    //a los brokers de manera equitativa, dependiendo de las condiciones
+    public void repartirEquiposPorBrokers( List<String> equipos, List<String> otrosBrokers ){
         
         //si hay un sólo equipo entonces entregarselo al 1er broker
         if( equipos.size() == 1 ){
@@ -231,8 +214,56 @@ public class ServidorBroker {
             }
         }
         
+        //si hay más equipos que brokers        
+        if( equipos.size() > this.brokers.size() ){
+            
+            List<String> todosBrokers = new ArrayList<>();
+            todosBrokers.add(this.ipServidor);            
+            for(int m=0; m<otrosBrokers.size(); m++){
+                todosBrokers.add(otrosBrokers.get(m));
+            }
+            
+            int nEquiposPorBroker = (int) Math.floor( equipos.size()/todosBrokers.size() );
+            System.out.println("# equipos x broker: "+nEquiposPorBroker);
+            int equiposUltimoBroker = 0;
+
+            if( nEquiposPorBroker*todosBrokers.size() < equipos.size() ){
+               equiposUltimoBroker = equipos.size() - ( nEquiposPorBroker*todosBrokers.size() );
+            }
+
+            int i = 0;
+
+            for(int j = 0; j<nEquiposPorBroker*todosBrokers.size(); j++){      
+                System.out.println("i: "+i);
+                if(i < nEquiposPorBroker){
+                    this.equiposPorBroker.put(equipos.get(j), todosBrokers.get(i));
+                }
+                i = i+1;
+                if( i>todosBrokers.size()-1 ){
+                    i=0;
+                }
+            }     
+
+            //System.out.println("Equipos faltantes: "+equiposUltimoBroker);
+
+            //asignar a último broker los equipos restantes
+            if(equiposUltimoBroker>0){
+                int posicion = nEquiposPorBroker*todosBrokers.size();
+                for(int k=posicion; k<posicion+equiposUltimoBroker; k++){
+                    this.equiposPorBroker.put(equipos.get(k), todosBrokers.get( todosBrokers.size()-1 ));
+                }
+            }
+            
+        }
+        
+        System.out.println("Equipos y brokers repartidos de la siguiente manera\n");
+        for (HashMap.Entry<String, String> entry : this.equiposPorBroker.entrySet()) {
+            System.out.println("Broker "+entry.getValue()+" -> Equipo "+entry.getKey());
+        }        
+        //System.out.println(this.equiposPorBroker);        
     }
     
+    //establece la comunicación inicial con los otros brokers en el sistema
     public void establecerComunicacionOtrosBrokers( List<String> equipos ){
         
         System.out.println("\nESTABLECIENDO COMUNICACIÓN INICIAL CON OTROS BROKERS");
@@ -394,6 +425,7 @@ public class ServidorBroker {
         return desvEstandar;
     }
     
+    //función para realizar ordenamiento por algoritmo quick sort
     public static void quickSort(long[] arr, int start, int end){
  
         int partition = partition(arr, start, end);
@@ -406,6 +438,7 @@ public class ServidorBroker {
         }
     }
  
+    //función auxiliar para realizar ordenamiento por algoritmo quick sort
     public static int partition(long[] arr, int start, int end){
         int pivot = (int) arr[end];
  
@@ -425,6 +458,7 @@ public class ServidorBroker {
         return start;
     }
     
+    //revisa si se pudo entablar conexión inicial con los equipos en el sistema
     public void revisarEquiposConexionInicial(){    
         
         try {
@@ -453,6 +487,10 @@ public class ServidorBroker {
         
     }
     
+    //monitorea que los equipos a los que se les solicitó reporte de rendimiento
+    //contesten en tiempo máximo de 6 segundos, si uno se demora más de 6 s 
+    //en responder lo clasifica como inactivo, si no contesta en 45 segundos 
+    //entonces se asume que ese equipo está caído
     public void monitorearEquiposActivos(){
         
         NotificacionEquipo equipo;
@@ -818,6 +856,7 @@ public class ServidorBroker {
         timer.schedule(task, tiempoInicialEspera, tiempoPeriodicoEjecucion);
     }
     
+    //finaliza la ejecución del broker si se presentaron errores
     public void terminarEjecucionConErrores(String mensajeError){
         
         try {
@@ -1104,6 +1143,8 @@ public class ServidorBroker {
         t1.start();
     }
     
+    //esta función está siempre pendiente de recibir mensajes provenientes de
+    //otros brokers y actuar dependiendo de lo comunicado en el mensaje
     public void iniciarEscuchaBrokers(){
         
         ServerSocket ss = null;
@@ -1255,7 +1296,7 @@ public class ServidorBroker {
     }
     
     //función que envía un mensaje al broker anterior en la configuración
-    //de anillo para conocer si aún se encuentra activo
+    //de anillo para conocer si aún se encuentra activo, periódicamente
     public void revisarBrokerAnterior(){
         
         TimerTask task = new TimerTask() {
@@ -1320,6 +1361,9 @@ public class ServidorBroker {
         timer.schedule(task, tiempoInicialEspera, tiempoPeriodicoEjecucion);
     }
     
+    //revisa constantemente si un mensaje enviado al broker anterior en el anillo
+    //fue respondido, si no, después de unos segundos asume que el otro broker
+    //está caído y asume los equipos que estaba administrando el broker ahora caído
     public void monitorearRespuestaBrokerAnterior(){
         
         while(true){

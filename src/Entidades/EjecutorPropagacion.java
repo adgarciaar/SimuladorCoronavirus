@@ -33,6 +33,7 @@ public class EjecutorPropagacion extends Thread {
     public EjecutorPropagacion() {
     }
 
+    //función encargada de inicializar el modelo
     public EjecutorPropagacion(Pais pais) {
     	this.pais = pais;
     	int size = (int) Math.sqrt(this.pais.getPoblacion());
@@ -80,18 +81,18 @@ public class EjecutorPropagacion extends Thread {
     }
     
     //Función encargada de enfermar n habitantes
-    public  void addEnfermos(int cant) {		  
-		int cantEnfermos = 0;
-    	while (cantEnfermos < cant) {
+    public void addEnfermos(int cant) {
+        int cantEnfermos = 0;
+        while (cantEnfermos < cant) {
             Random random = new Random();
-            int x = random.nextInt(habitantes.length-2);
-            int y = random.nextInt(habitantes[x].length-2);
+            int x = random.nextInt(habitantes.length - 2);
+            int y = random.nextInt(habitantes[x].length - 2);
             if (habitantes[x][y].estado == EstadoEnum.SANO) {
-            	habitantes[x][y].estado = EstadoEnum.CONTAGIADO;
-            	this.pais.addEnfermo();
+                habitantes[x][y].estado = EstadoEnum.CONTAGIADO;
+                this.pais.addEnfermo();
             }
-        }	
-    	cant++;		
+        }
+        cant++;
     }
 
     public Pais getPais() {
@@ -247,6 +248,7 @@ public class EjecutorPropagacion extends Thread {
         }
     }
 
+    //función para infectar un país (con infectados provenientes de otro país)
     public void InfectarPais(int infectados) {
 	System.out.println("Llegaron "+infectados+" a "+this.pais.getNombre());
 	addEnfermos(infectados);		

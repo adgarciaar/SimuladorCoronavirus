@@ -13,6 +13,8 @@ import java.util.List;
  *
  * @author adgar
  */
+
+//clase para los mensajes que se envían entre brokers
 public class MensajeBroker extends MensajeGeneral{
     
     //instruccion

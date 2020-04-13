@@ -11,6 +11,8 @@ import java.util.Date;
  *
  * @author adgar
  */
+
+//guarda datos para conocer el estado actual de un broker
 public class NotificacionBroker {
     
     private boolean disponible;

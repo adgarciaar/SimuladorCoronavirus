@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+//tiene los datos principales de un país requeridos para la infección
 public class Pais implements Serializable {
 
     private int id;

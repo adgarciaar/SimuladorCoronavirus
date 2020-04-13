@@ -13,8 +13,7 @@ import java.util.List;
  * @author adgar
  */
 
-//clase cuyos parámetros permiten establecer una comunicación entre los brokers
-//y los equipos de procesamiento
+//clase para los mensajes enviados entre equipos y brokers
 public class Mensaje extends MensajeGeneral {
     
     //variable para indicar el tipo de operación requerida o a realizar

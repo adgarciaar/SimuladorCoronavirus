@@ -12,6 +12,8 @@ import java.util.List;
  *
  * @author adgar
  */
+
+//clase padre para los mensajes (tanto entre equipos-brokers como brokers-brokers)
 public class MensajeGeneral implements Serializable {
     
     private int instruccion;
