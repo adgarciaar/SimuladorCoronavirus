@@ -9,6 +9,7 @@ import EquipoProcesamiento.ServidorEquipo;
 import Broker.ServidorBroker;
 import Entidades.Pais;
 import Entidades.Virus;
+import GUI.PantallaBroker;
 
 import java.io.File;  // Import the File class
 import java.io.FileNotFoundException;  // Import this class to handle errors
@@ -28,6 +29,9 @@ import java.util.Scanner; // Import the Scanner class to read text files
 public class Inicio {
 
     public static void main(String args[]) {
+        
+        PantallaBroker pantallaBroker = new PantallaBroker();
+        pantallaBroker.setVisible(true);
 
         List<String> instruccionesConfiguracion = new ArrayList<>();
 

@@ -205,55 +205,55 @@ public class ServidorBroker {
         //si hay un sólo equipo entonces entregarselo al 1er broker
         if( equipos.size() == 1 ){
             this.equiposPorBroker.put(equipos.get(0), this.ipServidor);
-        }
-        
-        //si sólo hay un broker entonces se le entregan todos los equipos a éste
-        if( this.brokers.size() == 1 ){            
-            for(int i=0; i<equipos.size(); i++){
-                this.equiposPorBroker.put(equipos.get(i), this.ipServidor);                
-            }
-        }
-        
-        //si hay más equipos que brokers        
-        if( equipos.size() > this.brokers.size() ){
-            
-            List<String> todosBrokers = new ArrayList<>();
-            todosBrokers.add(this.ipServidor);            
-            for(int m=0; m<otrosBrokers.size(); m++){
-                todosBrokers.add(otrosBrokers.get(m));
-            }
-            
-            int nEquiposPorBroker = (int) Math.floor( equipos.size()/todosBrokers.size() );
-            System.out.println("# equipos x broker: "+nEquiposPorBroker);
-            int equiposUltimoBroker = 0;
-
-            if( nEquiposPorBroker*todosBrokers.size() < equipos.size() ){
-               equiposUltimoBroker = equipos.size() - ( nEquiposPorBroker*todosBrokers.size() );
-            }
-
-            int i = 0;
-
-            for(int j = 0; j<nEquiposPorBroker*todosBrokers.size(); j++){      
-                System.out.println("i: "+i);
-                if(i < nEquiposPorBroker){
-                    this.equiposPorBroker.put(equipos.get(j), todosBrokers.get(i));
+        }else{        
+            //si sólo hay un broker entonces se le entregan todos los equipos a éste
+            if( this.brokers.size() == 1 ){            
+                for(int i=0; i<equipos.size(); i++){
+                    this.equiposPorBroker.put(equipos.get(i), this.ipServidor);                
                 }
-                i = i+1;
-                if( i>todosBrokers.size()-1 ){
-                    i=0;
-                }
-            }     
+            }else{
+                //si hay más equipos que brokers        
+                if( equipos.size() > this.brokers.size() ){
 
-            //System.out.println("Equipos faltantes: "+equiposUltimoBroker);
+                    List<String> todosBrokers = new ArrayList<>();
+                    todosBrokers.add(this.ipServidor);            
+                    for(int m=0; m<otrosBrokers.size(); m++){
+                        todosBrokers.add(otrosBrokers.get(m));
+                    }
 
-            //asignar a último broker los equipos restantes
-            if(equiposUltimoBroker>0){
-                int posicion = nEquiposPorBroker*todosBrokers.size();
-                for(int k=posicion; k<posicion+equiposUltimoBroker; k++){
-                    this.equiposPorBroker.put(equipos.get(k), todosBrokers.get( todosBrokers.size()-1 ));
+                    int nEquiposPorBroker = (int) Math.floor( equipos.size()/todosBrokers.size() );
+                    //System.out.println("# equipos x broker: "+nEquiposPorBroker);
+                    int equiposUltimoBroker = 0;
+
+                    if( nEquiposPorBroker*todosBrokers.size() < equipos.size() ){
+                       equiposUltimoBroker = equipos.size() - ( nEquiposPorBroker*todosBrokers.size() );
+                    }
+
+                    int i = 0;
+
+                    for(int j = 0; j<nEquiposPorBroker*todosBrokers.size(); j++){      
+                        System.out.println("i: "+i);
+                        if(i < nEquiposPorBroker){
+                            this.equiposPorBroker.put(equipos.get(j), todosBrokers.get(i));
+                        }
+                        i = i+1;
+                        if( i>todosBrokers.size()-1 ){
+                            i=0;
+                        }
+                    }     
+
+                    //System.out.println("Equipos faltantes: "+equiposUltimoBroker);
+
+                    //asignar a último broker los equipos restantes
+                    if(equiposUltimoBroker>0){
+                        int posicion = nEquiposPorBroker*todosBrokers.size();
+                        for(int k=posicion; k<posicion+equiposUltimoBroker; k++){
+                            this.equiposPorBroker.put(equipos.get(k), todosBrokers.get( todosBrokers.size()-1 ));
+                        }
+                    }
+
                 }
             }
-            
         }
         
         System.out.println("Equipos y brokers repartidos de la siguiente manera\n");
