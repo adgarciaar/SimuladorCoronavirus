@@ -41,7 +41,7 @@ public class SenderBroker {
             //socket.setSoTimeout(5*1000);
         } catch (IOException ex) {
             System.out.println("Error al abrir socket para comunicación con "+this.ip);
-            System.out.println(ex.toString());
+            //System.out.println(ex.toString());
             socket = null;
         }
         
