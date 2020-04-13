@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.concurrent.*;
-import ModeloPropagacion.EjecutorPropagacion;
+import Entidades.EjecutorPropagacion;
 import java.util.Arrays;
 import java.util.HashMap;
 
