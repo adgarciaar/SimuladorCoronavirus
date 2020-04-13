@@ -919,6 +919,8 @@ public class ServidorBroker {
                         
                         for(int i=0; i<paisesInicio.size(); i++){
                             
+                            System.out.println("Pais nuevo: "+paisesInicio.get(i).toString());
+                            
                             if( this.paisesEnEquipos.get( paisesInicio.get(i).getNombre() )!=null ){
                                 //System.out.println("Error: se ha duplicado un país "
                                 //        + "en los equipos de procesamiento.");
@@ -1046,28 +1048,29 @@ public class ServidorBroker {
                         
                     case 5://recibe infectados de un pais
                     	
+                        System.out.println("ENVÍO DE INFECTADOS DE UN PAÍS A OTRO");
                     	System.out.println("Recibiendo infectados desde "+pais.getNombre());
                     	ipSender = mensaje.getIpSender();
                     	
-                    	 this.sem.acquire();
+                    	this.sem.acquire();
                     	 
-                    	 //Creacion del mensaje
-         				 Mensaje mensajeContagio = new Mensaje();
-         				 mensajeContagio.setIpSender(this.ipServidor);
-         				 mensajeContagio.setInstruccion(5);
-         				 mensajeContagio.setPais(pais);
-         				 mensajeContagio.setTexto(mensaje.getTexto()); 
-         				 mensajeContagio.setNumeroPaisesProcesando(mensaje.getNumeroPaisesProcesando());
+                    	 //Creación del mensaje
+         		Mensaje mensajeContagio = new Mensaje();
+                        mensajeContagio.setIpSender(this.ipServidor);
+         		mensajeContagio.setInstruccion(5);
+         		mensajeContagio.setPais(pais);
+         		mensajeContagio.setTexto(mensaje.getTexto()); 
+         		mensajeContagio.setNumeroPaisesProcesando(mensaje.getNumeroPaisesProcesando());
          				 
-         				 String ipEquipoPaisContagiar = this.paisesEnEquipos.get(mensaje.getTexto());
+         		String ipEquipoPaisContagiar = this.paisesEnEquipos.get(mensaje.getTexto());
          				
-         				 //Creacion sender y envio de mensaje
-         				 SenderEquipo senderContagio = new SenderEquipo(ipEquipoPaisContagiar, this.puertoEquipos);
-         				 senderContagio.enviarMensaje( mensajeContagio );  
+         		//Creacion sender y envio de mensaje
+         		SenderEquipo senderContagio = new SenderEquipo(ipEquipoPaisContagiar, this.puertoEquipos);
+                        senderContagio.enviarMensaje( mensajeContagio );  
          				 
-         				System.out.println("Reenviados infectados desde "+pais.getNombre()+" en "+ipSender +" al pais "+mensaje.getTexto()+" en "+ipEquipoPaisContagiar);
+                        System.out.println("Reenviados infectados desde "+pais.getNombre()+" en "+ipSender +" al pais "+mensaje.getTexto()+" en "+ipEquipoPaisContagiar);
                     	 
-                    	 this.sem.release();
+                    	this.sem.release();
                     	
                     	break;
                    
@@ -1150,7 +1153,7 @@ public class ServidorBroker {
                         
                         List<String> equiposInicio = new ArrayList<>();
                         for (HashMap.Entry<String, String> entry : this.equiposPorBroker.entrySet()) {
-                            equiposInicio.add(entry.getKey());                            
+                            equiposInicio.add(entry.getKey());                               
                         }
                         
                         this.inicializarEquiposBroker(equiposInicio);

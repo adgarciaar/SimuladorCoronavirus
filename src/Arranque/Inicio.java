@@ -33,7 +33,7 @@ public class Inicio {
         List<String> instruccionesConfiguracion = new ArrayList<>();
                 
         try {
-            File myObj = new File("src/Configuracion/configuracionEquipo1.txt");
+            File myObj = new File("src/Configuracion/configuracionBroker.txt");
             try (Scanner myReader = new Scanner(myObj)) {
                 while (myReader.hasNextLine()) {
                     String data = myReader.nextLine();
