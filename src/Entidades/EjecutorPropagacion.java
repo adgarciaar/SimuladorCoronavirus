@@ -5,16 +5,10 @@
  */
 package Entidades;
 
-import Entidades.EstadoEnum;
-import Entidades.Mensaje;
-import Entidades.Pais;
-import Entidades.Persona;
 import EquipoProcesamiento.SenderEquipo;
 
 import java.util.Map;
 import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -134,12 +128,12 @@ public class EjecutorPropagacion extends Thread {
     public void infectarOtrosPaises() {
 
         if (this.band == false && this.pais.getContagiadosCount() > (this.pais.getPoblacion() * 0.01)) {
-            System.out.println("infectar");
+            //System.out.println("infectar");
             for (Map.Entry<String, Integer> entry : this.pais.getPaises().entrySet()) {
                 Random r = new Random();
                 double rand = r.nextInt(100) + r.nextDouble();
                 //if( rand < 20) { 
-                System.out.println("envio infectados");
+                //System.out.println("envio infectados");
                 //Creación del mensaje
                 Mensaje nuevoMensaje = new Mensaje();
                 nuevoMensaje.setIpSender(this.ipServidorEquipo);
@@ -152,8 +146,8 @@ public class EjecutorPropagacion extends Thread {
                 SenderEquipo sender = new SenderEquipo(this.ipBrokerActual, this.puerto);
                 sender.enviarMensaje(nuevoMensaje);
 
-                System.out.println("Enviado infectados desde pais: "
-                        + this.pais.getNombre() + " al pais: " + entry.getKey());
+                System.out.println("Enviados infectados desde país: "
+                        + this.pais.getNombre() + " al país: " + entry.getKey());
                 //entry.getKey().addEnfermos(10*entry.getValue());
                 //}
             }
@@ -177,7 +171,8 @@ public class EjecutorPropagacion extends Thread {
             System.out.println("Pausando hilo que ejecuta infección en país "+this.pais.getNombre());
             Thread.sleep(3000);
         } catch (InterruptedException ex) {
-            Logger.getLogger(EjecutorPropagacion.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Error pausando hilo");
+            System.exit(1);
         }
     }
     
@@ -242,7 +237,7 @@ public class EjecutorPropagacion extends Thread {
         
         while(keepRunning()) {   
             generate();
-            System.out.println("pais: "+this.pais.getNombre()+" Enfermos -> "+
+            System.out.println("País: "+this.pais.getNombre()+" Enfermos -> "+
                     this.pais.getContagiadosCount()+"  Muertos -> "+this.pais.getMuertosCount());        	
             infectarOtrosPaises();            
         }

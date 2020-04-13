@@ -392,8 +392,11 @@ public class ServidorEquipo {
                         System.exit(1);
                         
                         break; 
-                    case 5:
-                    	System.out.println("Recibiendo infectados desde pais: " + mensaje.getPais()+" a: "+mensaje.getTexto() );
+                        
+                    case 5: //recibiendo infectados para un país en este equipo
+                        
+                    	System.out.println("Recibiendo infectados desde pais: " 
+                                + mensaje.getPais()+" a: "+mensaje.getTexto() );
                     	ipSender = mensaje.getIpSender();
                     	
                     	this.sem.acquire();

@@ -104,15 +104,15 @@ public class ServidorBroker {
         
         this.inicializarBroker(puertoEquipos, puertoBrokers);
         
-        this.repartirEquiposPorBrokers(equipos);
-        
-        this.inicializarEquiposBroker(equipos);
-
         this.numeroBroker = 0;
         this.brokers.put(this.ipServidor, "Activo");
         for(int j=0; j<otrosBrokers.size();j++){      
             this.brokers.put(otrosBrokers.get(j), "Esperando");
         }
+        
+        this.repartirEquiposPorBrokers(equipos);        
+        
+        this.inicializarEquiposBroker(equipos);
         
         this.establecerComunicacionOtrosBrokers(equipos);
        
@@ -222,6 +222,13 @@ public class ServidorBroker {
         //si hay un sólo equipo entonces entregarselo al 1er broker
         if( equipos.size() == 1 ){
             this.equiposPorBroker.put(equipos.get(0), this.ipServidor);
+        }
+        
+        //si sólo hay un broker entonces se le entregan todos los equipos a éste
+        if( this.brokers.size() == 1 ){            
+            for(int i=0; i<equipos.size(); i++){
+                this.equiposPorBroker.put(equipos.get(i), this.ipServidor);                
+            }
         }
         
     }
@@ -919,7 +926,7 @@ public class ServidorBroker {
                         
                         for(int i=0; i<paisesInicio.size(); i++){
                             
-                            System.out.println("Pais nuevo: "+paisesInicio.get(i).toString());
+                            //System.out.println("Pais nuevo: "+paisesInicio.get(i).toString());
                             
                             if( this.paisesEnEquipos.get( paisesInicio.get(i).getNombre() )!=null ){
                                 //System.out.println("Error: se ha duplicado un país "
