@@ -1,6 +1,6 @@
 broker	no
 puerto	7777
-virus	0.5	0.2
+virus	0.5	0.2	0.5	0.001
 paises	2
 0	Colombia	100	10	10	10
 1	Brasil	1000	10	10	0

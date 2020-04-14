@@ -161,10 +161,12 @@ public class Inicio {
 
                 arrayLinea = instruccionesConfiguracion.get(2).split("\t");
 
-                double tasatransmicion = Double.parseDouble(arrayLinea[1]);
-                double tasaMortalidad = Double.parseDouble(arrayLinea[2]);
+                double tasaTransmicionVulnerable = Double.parseDouble(arrayLinea[1]);
+                double tasaMortalidadVulnerable = Double.parseDouble(arrayLinea[2]);
+                double tasatransmicionNoVulnerable = Double.parseDouble(arrayLinea[3]);
+                double tasaMortalidadNoVulnerable = Double.parseDouble(arrayLinea[4]);
 
-                Virus virus = new Virus(tasatransmicion, tasaMortalidad);
+                Virus virus = new Virus(tasaTransmicionVulnerable, tasaMortalidadVulnerable, tasatransmicionNoVulnerable,tasaMortalidadNoVulnerable);
 
                 arrayLinea = instruccionesConfiguracion.get(3).split("\t");
 

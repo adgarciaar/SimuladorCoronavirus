@@ -82,17 +82,15 @@ public class EjecutorPropagacion extends Thread {
     
     //Función encargada de enfermar n habitantes
     public void addEnfermos(int cant) {
-        int cantEnfermos = 0;
-        while (cantEnfermos < cant) {
+        for (int i = 0; i < cant; i++) {
             Random random = new Random();
             int x = random.nextInt(habitantes.length - 2);
             int y = random.nextInt(habitantes[x].length - 2);
             if (habitantes[x][y].estado == EstadoEnum.SANO) {
                 habitantes[x][y].estado = EstadoEnum.CONTAGIADO;
                 this.pais.addEnfermo();
-            }
-        }
-        cant++;
+            }   
+        }    
     }
 
     public Pais getPais() {
@@ -202,24 +200,51 @@ public class EjecutorPropagacion extends Thread {
                 }
                 
                 //reglas de propagación
+                //Si esta sano tiene entre 1 y 6 vecinos contagiados
                 if ((habitantes[x][y].estado == EstadoEnum.SANO) && (sickNeighbors > 0 && sickNeighbors < 6)) {
 
                     if (habitantes[x][y].isolated == true) {
-                        next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicion() / 2);
+                        if (habitantes[x][y].vulnerable == true) {
+                            //es vulnerable y esta aislado
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasaTransmicionVulnerable()/ 2);
+                        } else
+                            //no es vulnerable y esta aislado
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicionNoVulnerable()/ 2);
                     } else {
-                        next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicion());
+                        if (habitantes[x][y].vulnerable == true) {
+                            //es vulnerable y no esta aislado
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasaTransmicionVulnerable()/ 2);
+                        } else
+                            //no es vulnerable y no esta aislado
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicionNoVulnerable()/ 2);
                     }
                 }
+                
+                //Si esta sano tiene mas de 6 vecinos contagiados
                 if ((habitantes[x][y].estado == EstadoEnum.SANO) && (sickNeighbors > 6)) {
                     if (habitantes[x][y].isolated == true) {
-                        next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicion());
+                        if (habitantes[x][y].vulnerable == true) {
+                            //es vulnerable y esta aislado
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasaTransmicionVulnerable()/ 2);
+                        } else
+                            //no es vulnerable y esta aislado
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicionNoVulnerable()/ 2);
                     } else {
-                        next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicion() * 2);
+                        if (habitantes[x][y].vulnerable == true) {
+                            //es vulnerable y no esta aislado
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasaTransmicionVulnerable()/ 2);
+                        } else
+                            //no es vulnerable y no esta aislado
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicionNoVulnerable()/ 2);
                     }
+                //Si esta contagiado    
                 } else if ((habitantes[x][y].estado == EstadoEnum.CONTAGIADO)) {
                     if (habitantes[x][y].vulnerable == true) {
-                        next[x][y].estado = this.pais.muerte(this.pais.getVirus().getTasaMortalidad());
-                    }
+                        //es vulnerable
+                        next[x][y].estado = this.pais.muerte(this.pais.getVirus().getTasaMortalidadVulnerable());
+                    }else
+                        //no es vulnerable
+                        next[x][y].estado = this.pais.muerte(this.pais.getVirus().getTasaMortalidadNoVulnerable());
                 }
             }
 
