@@ -5,17 +5,52 @@
  */
 package GUI;
 
+import Broker.ServidorBroker;
+import java.awt.Label;
+import java.util.List;
+
 /**
  *
  * @author adgar
  */
 public class PantallaBroker extends javax.swing.JFrame {
+    
+    private int puertoEquipos;
+    private int puertoBrokers;
+    private List<String> otrosBrokers;
+    private List<String> equipos;
 
     /**
      * Creates new form PantallaBroker
      */
     public PantallaBroker() {
         initComponents();
+    }
+    
+    public void actualizar(List<String> equipos, List<String> brokers){
+                 
+        for(int i=0; i<equipos.size(); i++){
+            //Label nuevoLabel = new Label();
+            //nuevoLabel.setText("Equipo "+equipos.get(i));
+            this.jTextAreaEquipos.setText( this.jTextAreaEquipos.getText()+"\n"+ "Equipo "+equipos.get(i));
+            //this.scrollPane1.add(nuevoLabel);            
+        }              
+        
+        for(int i=0; i<brokers.size(); i++){
+            //Label nuevoLabel = new Label();
+            //nuevoLabel.setText("Broker "+brokers.get(i));
+            this.jTextAreaBrokers.setText( this.jTextAreaBrokers.getText()+"\n"+ "Broker "+equipos.get(i));
+            //this.scrollPane2.add(nuevoLabel);            
+        }       
+        
+    }
+    
+    public void establecerVariables(int puertoEquipos, int puertoBrokers, 
+            List<String> otrosBrokers, List<String> equipos){
+        this.puertoEquipos = puertoEquipos;
+        this.puertoBrokers = puertoBrokers;
+        this.otrosBrokers = otrosBrokers;
+        this.equipos = equipos;
     }
 
     /**
@@ -27,21 +62,122 @@ public class PantallaBroker extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jLabel1 = new javax.swing.JLabel();
+        jButton1 = new javax.swing.JButton();
+        jLabel2 = new javax.swing.JLabel();
+        jLabel3 = new javax.swing.JLabel();
+        jButton2 = new javax.swing.JButton();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jTextAreaBrokers = new javax.swing.JTextArea();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        jTextAreaEquipos = new javax.swing.JTextArea();
+
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+
+        jLabel1.setText("Broker");
+
+        jButton1.setText("Iniciar sistema");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
+        jLabel2.setText("Equipos especificados");
+
+        jLabel3.setText("Brokers especificados");
+
+        jButton2.setText("Esperar");
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
+
+        jTextAreaBrokers.setEditable(false);
+        jTextAreaBrokers.setColumns(20);
+        jTextAreaBrokers.setRows(5);
+        jScrollPane1.setViewportView(jTextAreaBrokers);
+
+        jTextAreaEquipos.setEditable(false);
+        jTextAreaEquipos.setColumns(20);
+        jTextAreaEquipos.setRows(5);
+        jScrollPane2.setViewportView(jTextAreaEquipos);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(94, 94, 94)
+                .addComponent(jLabel2)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jLabel3)
+                .addGap(106, 106, 106))
+            .addGroup(layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(286, 286, 286)
+                        .addComponent(jLabel1))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(172, 172, 172)
+                        .addComponent(jButton1)
+                        .addGap(42, 42, 42)
+                        .addComponent(jButton2)))
+                .addContainerGap(217, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addGap(65, 65, 65)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 227, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 227, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(62, 62, 62))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(42, 42, 42)
+                .addComponent(jLabel1)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel2)
+                    .addComponent(jLabel3))
+                .addGap(36, 36, 36)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 167, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 167, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 40, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jButton1)
+                    .addComponent(jButton2))
+                .addGap(40, 40, 40))
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        this.jButton1.setVisible(false);
+        this.jButton2.setVisible(false);
+        ServidorBroker servidorBroker = new ServidorBroker(puertoEquipos,
+                puertoBrokers, equipos, otrosBrokers);
+        
+        servidorBroker.iniciarEscuchaServidorBrokers();
+        servidorBroker.iniciarEscuchaServidor();
+        servidorBroker.establecerComunicacionInicialConEquipos();
+        servidorBroker.solicitarCargaEquipos();
+        servidorBroker.iniciarMonitorEquiposActivos();
+        servidorBroker.definirDistribucion(); 
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        this.jButton1.setVisible(false);
+        this.jButton2.setVisible(false);
+        ServidorBroker servidorBroker = new ServidorBroker(puertoEquipos,
+                puertoBrokers);        
+        servidorBroker.iniciarEscuchaServidorBrokers();
+        
+        
+    }//GEN-LAST:event_jButton2ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -73,11 +209,20 @@ public class PantallaBroker extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new PantallaBroker().setVisible(true);
+                //new PantallaBroker().setVisible(true);
             }
         });
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton jButton1;
+    private javax.swing.JButton jButton2;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JTextArea jTextAreaBrokers;
+    private javax.swing.JTextArea jTextAreaEquipos;
     // End of variables declaration//GEN-END:variables
 }
