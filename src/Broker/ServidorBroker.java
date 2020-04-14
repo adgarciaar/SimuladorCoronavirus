@@ -758,10 +758,10 @@ public class ServidorBroker {
 
                                     //usar mapa para saber a dónde distribuir ese país
 
-                                    System.out.println("Se va a transferir un país con población "+cargasMayor[0]);
+                                    //System.out.println("Se va a transferir un país con población "+cargasMayor[0]);
 
                                     paisesADistribuirEnEquipos.put(cargasMayor[0], equipoConMenorProcesamiento);
-
+                                    
                                     //enviar mensaje para pedir el agente a trasladar
 
                                     String ipEquipo = equipoConMayorProcesamiento;
@@ -1001,13 +1001,16 @@ public class ServidorBroker {
                       
                     case 2: //recibiendo país desde un equipo
                         
-                        System.out.println("Recibiendo país desde el equipo para distribuir");
-                      
+                        System.out.println("Recibiendo país desde el equipo para distribuir");                      
+                        
                         this.sem.acquire();
                         
                         this.paisesPorDistribuir.put(pais.getNombre(), pais);
                         
-                        String ipEquipoARepartir = this.paisesADistribuirEnEquipos.get(pais.getPoblacion());                        
+                        //System.out.println("ESTOY BUSCANDO POR : "+pais.getPoblacion());
+                        //System.out.println("en "+this.paisesADistribuirEnEquipos);
+                        String ipEquipoARepartir = this.paisesADistribuirEnEquipos.get(pais.getPoblacion());
+                        //System.out.println("lo que encuentra es: "+ipEquipoARepartir);
                         
                         //enviarlo al nuevo equipo donde se va a procesar
                         
@@ -1017,7 +1020,9 @@ public class ServidorBroker {
                         nuevoMensaje.setInstruccion(1);
 
                         SenderBroker sender = new SenderBroker(ipEquipoARepartir, this.puertoEquipos);
-                        sender.enviarMensaje( nuevoMensaje );      
+                        System.out.println("se va a enviar al "+ipEquipoARepartir);
+                        sender.enviarMensaje( nuevoMensaje );    
+                        
                         System.out.println("Enviado país "+ pais.getNombre() 
                                 +" a "+ipEquipoARepartir+" con población "+pais.getPoblacion());
                         
