@@ -41,8 +41,8 @@ public class PantallaBroker extends javax.swing.JFrame {
     
     public void actualizarBrokers(List<String> brokers){     
         
-        System.out.println(brokers);        
-        
+        //System.out.println(brokers);        
+        this.jTextAreaBrokers.setText("");
         for(int i=0; i<brokers.size(); i++){            
             this.jTextAreaBrokers.setText(  this.jTextAreaBrokers.getText()+"\n"+ "Broker "+brokers.get(i));                      
         }       

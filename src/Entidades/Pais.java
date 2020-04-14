@@ -16,7 +16,7 @@ public class Pais implements Serializable {
 
     private int id;
     private String nombre;
-    private int poblacion;
+    private long poblacion;
     private double tasaVulnerabilidad;
     private double tasaAislamiento;
     private int sanosCount;
@@ -80,11 +80,11 @@ public class Pais implements Serializable {
         this.nombre = nombre;
     }
 
-    public int getPoblacion() {
+    public long getPoblacion() {
         return poblacion;
     }
 
-    public void setPoblacion(int poblacion) {
+    public void setPoblacion(long poblacion) {
         this.poblacion = poblacion;
     }
 
