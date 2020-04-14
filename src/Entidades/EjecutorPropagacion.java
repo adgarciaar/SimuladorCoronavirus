@@ -200,42 +200,42 @@ public class EjecutorPropagacion extends Thread {
                 }
                 
                 //reglas de propagación
-                //Si esta sano tiene entre 1 y 6 vecinos contagiados
+                //Si esta sano y tiene entre 1 y 6 vecinos contagiados
                 if ((habitantes[x][y].estado == EstadoEnum.SANO) && (sickNeighbors > 0 && sickNeighbors < 6)) {
 
                     if (habitantes[x][y].isolated == true) {
                         if (habitantes[x][y].vulnerable == true) {
                             //es vulnerable y esta aislado
-                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasaTransmicionVulnerable()/ 2);
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasaTransmicionVulnerable()/2);
                         } else
                             //no es vulnerable y esta aislado
-                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicionNoVulnerable()/ 2);
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicionNoVulnerable()/2);
                     } else {
                         if (habitantes[x][y].vulnerable == true) {
                             //es vulnerable y no esta aislado
-                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasaTransmicionVulnerable()/ 2);
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasaTransmicionVulnerable());
                         } else
                             //no es vulnerable y no esta aislado
-                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicionNoVulnerable()/ 2);
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicionNoVulnerable());
                     }
                 }
                 
-                //Si esta sano tiene mas de 6 vecinos contagiados
+                //Si esta sano y tiene mas de 6 vecinos contagiados
                 if ((habitantes[x][y].estado == EstadoEnum.SANO) && (sickNeighbors > 6)) {
                     if (habitantes[x][y].isolated == true) {
                         if (habitantes[x][y].vulnerable == true) {
                             //es vulnerable y esta aislado
-                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasaTransmicionVulnerable()/ 2);
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasaTransmicionVulnerable());
                         } else
                             //no es vulnerable y esta aislado
-                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicionNoVulnerable()/ 2);
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicionNoVulnerable());
                     } else {
                         if (habitantes[x][y].vulnerable == true) {
                             //es vulnerable y no esta aislado
-                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasaTransmicionVulnerable()/ 2);
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasaTransmicionVulnerable()*2);
                         } else
                             //no es vulnerable y no esta aislado
-                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicionNoVulnerable()/ 2);
+                            next[x][y].estado = this.pais.contagio(this.pais.getVirus().getTasatransmicionNoVulnerable()*2);
                     }
                 //Si esta contagiado    
                 } else if ((habitantes[x][y].estado == EstadoEnum.CONTAGIADO)) {
