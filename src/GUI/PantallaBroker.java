@@ -25,29 +25,26 @@ public class PantallaBroker extends javax.swing.JFrame {
      */
     public PantallaBroker() {
         initComponents();
+        this.jTextAreaBrokers.setText("");
+        this.jTextAreaEquipos.setText("");
     }
     
     public void actualizarEquipos(List<String> equipos){
         
         this.jTextAreaEquipos.setText("");
                  
-        for(int i=0; i<equipos.size(); i++){
-            //Label nuevoLabel = new Label();
-            //nuevoLabel.setText("Equipo "+equipos.get(i));
-            this.jTextAreaEquipos.setText( this.jTextAreaEquipos.getText()+"\n"+ "Equipo "+equipos.get(i));
-            //this.scrollPane1.add(nuevoLabel);            
+        for(int i=0; i<equipos.size(); i++){            
+            this.jTextAreaEquipos.setText( this.jTextAreaEquipos.getText()+"\n"+ "Equipo "+equipos.get(i));                 
         }    
         
     }
     
-    public void actualizarBrokers(List<String> brokers){        
+    public void actualizarBrokers(List<String> brokers){     
         
-        this.jTextAreaBrokers.setText("");
-        for(int i=0; i<brokers.size(); i++){
-            //Label nuevoLabel = new Label();
-            //nuevoLabel.setText("Broker "+brokers.get(i));
-            this.jTextAreaBrokers.setText( this.jTextAreaBrokers.getText()+"\n"+ "Broker "+equipos.get(i));
-            //this.scrollPane2.add(nuevoLabel);            
+        System.out.println(brokers);        
+        
+        for(int i=0; i<brokers.size(); i++){            
+            this.jTextAreaBrokers.setText(  this.jTextAreaBrokers.getText()+"\n"+ "Broker "+brokers.get(i));                      
         }       
         
     }
