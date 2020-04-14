@@ -11,6 +11,7 @@ import Entidades.Pais;
 import Entidades.Virus;
 import GUI.PantallaBroker;
 import GUI.PantallaInicio;
+import GUI.PantallaPaises;
 
 import java.io.File;  // Import the File class
 import java.io.FileNotFoundException;  // Import this class to handle errors
@@ -28,6 +29,16 @@ import java.util.Scanner; // Import the Scanner class to read text files
 //ya sea como broker o como un equipo de procesamiento
 //dependiendo de los datos en el archivo de configuración
 public class Inicio {
+    
+    List<Pais> paisesList;
+
+    public List<Pais> getPaisesList() {
+        return paisesList;
+    }
+
+    public void setPaisesList(List<Pais> paisesList) {
+        this.paisesList = paisesList;
+    }
 
     public void leerArchivo(String ruta, PantallaInicio pantallaInicio) {
             
@@ -221,12 +232,16 @@ public class Inicio {
                 }
                 
                 pantallaInicio.setVisible(false);
+                PantallaPaises pantallaPaises = new PantallaPaises();
+                pantallaPaises.setVisible(true);
+                pantallaPaises.addRowToJTable(paisesList);
 
-                ServidorEquipo servidor = new ServidorEquipo(paisesList, puerto);
+                ServidorEquipo servidor = new ServidorEquipo(paisesList, puerto,pantallaPaises);
 
                 //iniciar el servidor del equipo de procesamiento
                 //el cual se queda esperando por la comunicación inicial de un broker
                 servidor.iniciarEscuchaServidor();
+                servidor.actualizarPantalla();
             }
 
         } catch (Exception e) {

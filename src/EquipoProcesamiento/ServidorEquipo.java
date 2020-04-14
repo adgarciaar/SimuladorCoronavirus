@@ -21,8 +21,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.concurrent.*;
 import Entidades.EjecutorPropagacion;
+import GUI.PantallaPaises;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  *
@@ -34,6 +37,7 @@ public class ServidorEquipo {
     private int puerto; //puerto con el que se comunica esta máquina
     private volatile List<Pais> paises; //lista de países que se están ejecutando en este equipo  
     private String ipBrokerActual;//guarda la ip del broker con el que s e esta comunicando en el momento
+    private PantallaPaises pantallaPaises;
     
     //mapa para guardar las duplas <Nombre país, Hilo de ejecución de ese país>
     private volatile HashMap<String, EjecutorPropagacion> hilos;
@@ -44,9 +48,10 @@ public class ServidorEquipo {
 
     //constructor de la clase, se le pasan los países precargados en el archivo
     //de configuración inicial y el puerto por el que se va a comunicar
-    public ServidorEquipo(List<Pais> paises, int puerto){
+    public ServidorEquipo(List<Pais> paises, int puerto, GUI.PantallaPaises pantallaPaises){
         this.paises = new ArrayList<>(paises);
         this.puerto = puerto;
+        this.pantallaPaises = pantallaPaises;
         
         //se inicializa el semáforo con 1, para que sólo una función pueda
         //acceder a la vez a las variables de la clase
@@ -432,6 +437,45 @@ public class ServidorEquipo {
         Runnable task1 = () -> { this.iniciarEscucha();};      
         Thread t1 = new Thread(task1);
         t1.start();
+    }
+    
+    public void actualizarPantalla(){
+        
+        TimerTask task = new TimerTask() {
+
+            @Override
+            public void run() {
+
+                try {
+                    sem.acquire();
+                } catch (InterruptedException ex) {
+                    System.out.println("Error al intentar activar semáforo");
+                    System.exit(1);
+                }
+                Pais pais;
+                List<Pais> paisesPantalla = new ArrayList();
+                for (HashMap.Entry<String, EjecutorPropagacion> entry : hilos.entrySet()) {
+                    pais = entry.getValue().getPais();
+                    paisesPantalla.add(pais);                    
+                }               
+                pantallaPaises.addRowToJTable(paisesPantalla);
+                
+                sem.release();
+            }
+
+        };
+
+        Timer timer = new Timer();
+        //timer.schedule(task, new Date(), 3000);
+
+        //tiempo (ms) que dura para ejecutarse cada vez
+        int tiempoPeriodicoEjecucion = 1000;
+        //tiempo (ms) que dura para ejecutarse la primera vez
+        int tiempoInicialEspera = 10000;
+
+        //la tarea se ejecuta cada t segundos
+        timer.schedule(task, tiempoInicialEspera, tiempoPeriodicoEjecucion);
+
     }
         
 }
