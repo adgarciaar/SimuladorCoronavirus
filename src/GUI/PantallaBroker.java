@@ -27,15 +27,22 @@ public class PantallaBroker extends javax.swing.JFrame {
         initComponents();
     }
     
-    public void actualizar(List<String> equipos, List<String> brokers){
+    public void actualizarEquipos(List<String> equipos){
+        
+        this.jTextAreaEquipos.setText("");
                  
         for(int i=0; i<equipos.size(); i++){
             //Label nuevoLabel = new Label();
             //nuevoLabel.setText("Equipo "+equipos.get(i));
             this.jTextAreaEquipos.setText( this.jTextAreaEquipos.getText()+"\n"+ "Equipo "+equipos.get(i));
             //this.scrollPane1.add(nuevoLabel);            
-        }              
+        }    
         
+    }
+    
+    public void actualizarBrokers(List<String> brokers){        
+        
+        this.jTextAreaBrokers.setText("");
         for(int i=0; i<brokers.size(); i++){
             //Label nuevoLabel = new Label();
             //nuevoLabel.setText("Broker "+brokers.get(i));
@@ -159,11 +166,12 @@ public class PantallaBroker extends javax.swing.JFrame {
         this.jButton1.setVisible(false);
         this.jButton2.setVisible(false);
         ServidorBroker servidorBroker = new ServidorBroker(puertoEquipos,
-                puertoBrokers, equipos, otrosBrokers);
+                puertoBrokers, equipos, otrosBrokers, this);
         
         servidorBroker.iniciarEscuchaServidorBrokers();
         servidorBroker.iniciarEscuchaServidor();
         servidorBroker.establecerComunicacionInicialConEquipos();
+        servidorBroker.actualizarPantalla();
         servidorBroker.solicitarCargaEquipos();
         servidorBroker.iniciarMonitorEquiposActivos();
         servidorBroker.definirDistribucion(); 
@@ -173,10 +181,8 @@ public class PantallaBroker extends javax.swing.JFrame {
         this.jButton1.setVisible(false);
         this.jButton2.setVisible(false);
         ServidorBroker servidorBroker = new ServidorBroker(puertoEquipos,
-                puertoBrokers);        
+                puertoBrokers, this);        
         servidorBroker.iniciarEscuchaServidorBrokers();
-        
-        
     }//GEN-LAST:event_jButton2ActionPerformed
 
     /**

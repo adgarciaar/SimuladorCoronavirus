@@ -112,7 +112,8 @@ public class Inicio {
                 pantallaInicio.setVisible(false);
                 
                 PantallaBroker pantallaBroker = new PantallaBroker();
-                pantallaBroker.actualizar(equipos, otrosBrokers); 
+                pantallaBroker.actualizarEquipos(equipos);
+                pantallaBroker.actualizarBrokers(otrosBrokers);
                 pantallaBroker.setVisible(true);
                    
                 pantallaBroker.establecerVariables(puertoEquipos, puertoBrokers, 

@@ -11,6 +11,7 @@ import EquipoProcesamiento.SenderEquipo;
 import Entidades.Mensaje;
 import Entidades.MensajeBroker;
 import Entidades.NotificacionBroker;
+import GUI.PantallaBroker;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -97,10 +98,14 @@ public class ServidorBroker {
     //mapa que guarda duplas < IP de un broker, Objecto con datos de notificaciones de ese broker >
     private volatile HashMap<String, NotificacionBroker> notificacionesBrokers;
     
+    PantallaBroker pantalla;
+    
     //constructor de la clase, se le pasan el puertoEquipos por el que se va a comunicar
     //y un mapa con los equipos precargados con los que se va a comunicar
     public ServidorBroker(int puertoEquipos, int puertoBrokers, 
-            List<String> equipos, List<String> otrosBrokers) {
+            List<String> equipos, List<String> otrosBrokers, PantallaBroker pantalla) {
+        
+        this.pantalla = pantalla;
         
         this.inicializarBroker(puertoEquipos, puertoBrokers);
         
@@ -119,7 +124,8 @@ public class ServidorBroker {
     }
     
     //constructor secundario de la clase
-    public ServidorBroker(int puertoEquipos, int puertoBrokers) {
+    public ServidorBroker(int puertoEquipos, int puertoBrokers, PantallaBroker pantalla) {
+        this.pantalla = pantalla;
         this.inicializarBroker(puertoEquipos, puertoBrokers);
     }
     
@@ -505,7 +511,7 @@ public class ServidorBroker {
             } catch (InterruptedException ex) {
                 System.out.println("Error al intentar activar semáforo");
                 System.exit(1);
-            }
+            }            
             
             for (HashMap.Entry<String, NotificacionEquipo> entry : this.estadosEquipos.entrySet()) {
                 
@@ -595,6 +601,7 @@ public class ServidorBroker {
 
                     }
                 }
+                
             }  
             
             sem.release();
@@ -1223,6 +1230,7 @@ public class ServidorBroker {
                         
                         this.revisarBrokerAnterior();
                         this.iniciarMonitoreoBrokerAnterior();
+                        this.actualizarPantalla();
                         
                         this.sem2.release();
 					
@@ -1422,6 +1430,15 @@ public class ServidorBroker {
                 }
                     
             }
+            List<String> brokers = new ArrayList<>();
+            if(notBroker.isDisponible()){
+                brokers.add(ipBrokerAnterior+" está activo");
+                this.pantalla.actualizarBrokers(brokers);
+            }else{
+                brokers.add(ipBrokerAnterior+" está inactivo");
+                this.pantalla.actualizarBrokers(brokers);
+            }
+            
             this.sem2.release();
         }
         
@@ -1433,4 +1450,47 @@ public class ServidorBroker {
         Thread t1 = new Thread(task1);
         t1.start();
     }
+    
+    public void actualizarPantalla(){
+        
+        TimerTask task = new TimerTask() {
+
+            @Override
+            public void run() {
+
+                try {
+                    sem.acquire();
+                } catch (InterruptedException ex) {
+                    System.out.println("Error al intentar activar semáforo");
+                    System.exit(1);
+                }
+                NotificacionEquipo equipo;
+                List<String> equiposPantalla = new ArrayList();
+                for (HashMap.Entry<String, NotificacionEquipo> entry : estadosEquipos.entrySet()) {
+                    equipo = entry.getValue();
+                    if (equipo.isActivo()) {
+                        equiposPantalla.add(entry.getKey() + " está activo");
+                    } else {
+                        equiposPantalla.add(entry.getKey() + " está inactivo");
+                    }
+                }
+                pantalla.actualizarEquipos(equiposPantalla);      
+                sem.release();
+            }
+
+        };
+
+        Timer timer = new Timer();
+        //timer.schedule(task, new Date(), 3000);
+
+        //tiempo (ms) que dura para ejecutarse cada vez
+        int tiempoPeriodicoEjecucion = 5000;
+        //tiempo (ms) que dura para ejecutarse la primera vez
+        int tiempoInicialEspera = 10000;
+
+        //la tarea se ejecuta cada t segundos
+        timer.schedule(task, tiempoInicialEspera, tiempoPeriodicoEjecucion);
+
+    }
+   
 }
